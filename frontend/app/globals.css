@@ -1,0 +1,531 @@
+@import "tailwindcss";
+
+:root {
+  /* ========== Primary Colors (cyan — the documented brand primary) ========== */
+  --color-primary: #06B6D4;           /* Cyan 500 - Main actions */
+  --color-primary-hover: #0891B2;     /* Cyan 600 - Hover states */
+  --color-primary-light: #ECFEFF;     /* Cyan 50 - Backgrounds */
+  --color-primary-dark: #0E7490;      /* Cyan 800 - Active states */
+
+  /* ========== Background Colors ========== */
+  --background-primary: #FFFFFF;       /* Main backgrounds */
+  --background-secondary: #F9FAFB;     /* Secondary backgrounds */
+  --background-tertiary: #F1F5F9;      /* Tertiary backgrounds (slate-100) */
+  --background-elevated: #FFFFFF;      /* Elevated surfaces */
+  --background-input: #FFFFFF;         /* Input backgrounds */
+  --background-hover: #F1F5F9;         /* Hover states (slate-100) */
+
+  /* ========== Text Colors (slate neutrals) ========== */
+  --text-primary: #0F172A;             /* Headings, important text (slate-900) */
+  --text-secondary: #1E293B;           /* Body text, descriptions (slate-800) */
+  --text-tertiary: #64748B;            /* Secondary content (slate-500) */
+  --text-muted: #94A3B8;               /* Labels, metadata (slate-400) */
+  --text-placeholder: #CBD5E1;         /* Disabled, placeholders (slate-300) */
+  --text-disabled: #E2E8F0;            /* Disabled state (slate-200) */
+
+  /* ========== Border Colors (slate) ========== */
+  --border-subtle: #F1F5F9;           /* Subtle borders (slate-100) */
+  --border-default: #E2E8F0;          /* Standard borders (slate-200) */
+  --border-medium: #CBD5E1;           /* Medium borders (slate-300) */
+  --border-focus: #06B6D4;            /* Focus states (cyan) */
+
+  /* ========== Status Colors ========== */
+  --color-success: #059669;           /* Emerald 600 - Success */
+  --color-success-light: #D1FAE5;     /* Emerald 100 - Success bg */
+  --color-warning: #D97706;           /* Amber 600 - Warning */
+  --color-warning-light: #FEF3C7;     /* Amber 100 - Warning bg */
+  --color-error: #DC2626;             /* Red 600 - Error */
+  --color-error-light: #FEE2E2;       /* Red 100 - Error bg */
+  --color-info: #0284C7;              /* Sky 600 - Info */
+  --color-info-light: #E0F2FE;        /* Sky 100 - Info bg */
+
+  /* ========== Semantic Colors ========== */
+  --color-blue: #3B82F6;              /* Blue 500 - Primary category */
+  --color-emerald: #10B981;           /* Emerald 500 - Success */
+  --color-amber: #F59E0B;             /* Amber 500 - Warning */
+  --color-purple: #8B5CF6;            /* Purple 500 - Special */
+  --color-red: #EF4444;               /* Red 500 - Error */
+
+  /* ========== Spacing Tokens ========== */
+  --spacing-1: 4px;                   /* Tight spacing */
+  --spacing-2: 8px;                   /* Small gap */
+  --spacing-3: 12px;                  /* Medium gap */
+  --spacing-4: 16px;                  /* Standard gap */
+  --spacing-5: 20px;                  /* Large gap */
+  --spacing-6: 24px;                  /* Extra large gap */
+  --spacing-8: 32px;                  /* Section spacing */
+  --spacing-10: 40px;                 /* Major sections */
+
+  /* ========== Border Radius ========== */
+  --radius-sm: 6px;                   /* Small elements, badges */
+  --radius-md: 8px;                   /* Standard elements, inputs */
+  --radius-lg: 12px;                  /* Cards, containers */
+  --radius-xl: 16px;                  /* Large cards, modals */
+  --radius-full: 9999px;             /* Pills,完全圆形 */
+
+  /* ========== Typography ========== */
+  --font-sans: 'Inter', -apple-system, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* ========== Typography Sizes ========== */
+  --text-display-xl: 30px;            /* Page titles */
+  --text-display-lg: 24px;            /* Section headers */
+  --text-body-lg: 18px;              /* Important body text */
+  --text-body-md: 16px;               /* Standard body text */
+  --text-body-sm: 14px;               /* Secondary body text */
+  --text-ui-md: 14px;                 /* Buttons, labels */
+  --text-ui-sm: 12px;                 /* Small labels, metadata */
+  --text-ui-xs: 11px;                 /* Tiny text, badges */
+
+  /* ========== Transitions ========== */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========== Tailwind Theme Integration ========== */
+@theme inline {
+  /* Background Colors */
+  --color-background-primary: var(--background-primary);
+  --color-background-secondary: var(--background-secondary);
+  --color-background-tertiary: var(--background-tertiary);
+  --color-background-elevated: var(--background-elevated);
+  --color-background-hover: var(--background-hover);
+
+  /* Text Colors */
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-text-muted: var(--text-muted);
+  --color-text-disabled: var(--text-disabled);
+
+  /* Primary Colors */
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-primary-light: var(--color-primary-light);
+
+  /* Status Colors */
+  --color-success: var(--color-success);
+  --color-success-light: var(--color-success-light);
+  --color-warning: var(--color-warning);
+  --color-warning-light: var(--color-warning-light);
+  --color-error: var(--color-error);
+  --color-error-light: var(--color-error-light);
+  --color-info: var(--color-info);
+  --color-info-light: var(--color-info-light);
+
+  /* Semantic Colors */
+  --color-blue: var(--color-blue);
+  --color-emerald: var(--color-emerald);
+  --color-amber: var(--color-amber);
+  --color-purple: var(--color-purple);
+  --color-red: var(--color-red);
+
+  /* Border Colors */
+  --color-border-subtle: var(--border-subtle);
+  --color-border-default: var(--border-default);
+  --color-border-medium: var(--border-medium);
+  --color-border-focus: var(--border-focus);
+
+  /* Typography */
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+/* ========== Global Reset & Base Styles ========== */
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply antialiased;
+    background: var(--background-secondary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary);
+    font-weight: 600;
+    line-height: 1.25;
+  }
+
+  p {
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+}
+
+/* ========== Scrollbar Styling ========== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background-tertiary);
+  border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Firefox Scrollbar Styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) var(--background-tertiary);
+}
+
+/* ========== Overflow Prevention ========== */
+.prevent-overflow {
+  overflow: hidden;
+}
+
+.scroll-container {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ========== Responsive Fixes ========== */
+@media (max-width: 640px) {
+  .mobile-stack {
+    flex-direction: column;
+  }
+
+  .mobile-full-width {
+    width: 100%;
+  }
+}
+
+/* ========== Form Scrolling ========== */
+.form-scrollable {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.form-scrollable::-webkit-scrollbar {
+  width: 6px;
+}
+
+.form-scrollable::-webkit-scrollbar-track {
+  background: var(--background-tertiary);
+  border-radius: var(--radius-sm);
+}
+
+.form-scrollable::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: var(--radius-full);
+}
+
+.form-scrollable::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* ========== Focus Styles ========== */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ========== Selection Styles ========== */
+::selection {
+  background: rgba(6, 182, 212, 0.3);
+  color: white;
+}
+
+/* ========== Custom Animations ========== */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes accordion-down {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-soft {
+  0%, 100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-accordion-down {
+  animation: accordion-down 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 3s infinite ease-in-out;
+}
+
+/* ========== Modern Utility Classes ========== */
+
+/* Modern Card Utility */
+.modern-card {
+  background: var(--background-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: var(--transition-normal);
+}
+
+.modern-card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Modern Hover Utility */
+.modern-hover {
+  transition: var(--transition-normal);
+}
+
+.modern-hover:hover {
+  background: var(--background-hover);
+  transform: translateY(-1px);
+}
+
+/* Results Container */
+.results-container {
+  background: var(--background-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-8);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Metric Card */
+.metric-card {
+  background: var(--background-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-5);
+  transition: var(--transition-normal);
+}
+
+.metric-card:hover {
+  border-color: var(--border-default);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+/* ========== Responsive Utility Classes ========== */
+
+/* Container Utilities */
+.container-responsive {
+  width: 100%;
+  padding: var(--spacing-4);
+}
+
+@media (min-width: 640px) {
+  .container-responsive {
+    padding: var(--spacing-6);
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-responsive {
+    padding: var(--spacing-8);
+  }
+}
+
+/* Grid Utilities */
+.grid-responsive {
+  display: grid;
+  gap: var(--spacing-4);
+}
+
+.grid-responsive-2 {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .grid-responsive-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.grid-responsive-4 {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .grid-responsive-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-responsive-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Text Utilities */
+.text-responsive {
+  font-size: var(--text-body-md);
+  line-height: 1.5;
+}
+
+@media (min-width: 768px) {
+  .text-responsive {
+    font-size: var(--text-body-lg);
+  }
+}
+
+/* Typography Scale Classes */
+.text-display-xl {
+  font-size: var(--text-display-xl);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+}
+
+.text-display-lg {
+  font-size: var(--text-display-lg);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+}
+
+.text-body-lg {
+  font-size: var(--text-body-lg);
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.text-body-md {
+  font-size: var(--text-body-md);
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.text-body-sm {
+  font-size: var(--text-body-sm);
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.text-ui-md {
+  font-size: var(--text-ui-md);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.text-ui-sm {
+  font-size: var(--text-ui-sm);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.text-ui-xs {
+  font-size: var(--text-ui-xs);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* ========== Custom Scrollbar for Textareas ========== */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: var(--radius-full);
+  margin: 2px 0;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: var(--radius-full);
+  transition: background var(--transition-fast);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+.custom-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
