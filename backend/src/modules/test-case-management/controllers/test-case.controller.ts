@@ -12,7 +12,9 @@ import {
     SaveTestCaseInput, UpdateTestCaseInput, BulkSaveTestCaseInput, BulkUpdateInput,
     TestCaseFilter, TestCasePriority, TestCaseStatus, TestCaseType,
     ImportSaveInput, ImportValidationError,
+    TestCasePasteSaveInput, TestCasePasteSaveResult, TestCasePasteValidationError,
 } from '../types';
+import { testCasePasteService } from '../services/test-case-paste.service';
 
 /** Minimal shape of a multer memory-storage upload (avoids coupling to the Express.Multer namespace). */
 interface UploadedFile {
@@ -406,6 +408,129 @@ export const testCaseController = {
             handleImportError(res, error);
         }
     },
+
+    /**
+     * POST /api/test-cases/paste
+     * Parse + validate pasted table data (Markdown, TSV, Excel, Google Sheets).
+     * Returns a module-wise preview; does NOT persist. Validation/conflict failures return a
+     * structured body (`errorType` + details) so the frontend can render tailored error UI.
+     */
+    async parsePaste(req: Request, res: Response) {
+        try {
+            const text = String(req.body?.text ?? '').trim();
+            const projectName = String(req.body?.projectName ?? '').trim();
+
+            if (!text) {
+                return sendError(res, 400, 'Please paste some data.');
+            }
+            if (!projectName) {
+                return sendError(res, 400, 'A project must be selected before pasting.');
+            }
+
+            logger.info('POST /api/test-cases/paste', { project: projectName });
+
+            const preview = await testCasePasteService.parseAndValidate(text, projectName);
+            sendSuccess(
+                res,
+                preview,
+                { modulesCount: preview.modulesCount, totalCases: preview.totalCases },
+                'Paste parsed and validated successfully',
+            );
+        } catch (error: any) {
+            handlePasteError(res, error);
+        }
+    },
+
+    /**
+     * POST /api/test-cases/paste/save
+     * Persist a validated paste preview into Test Case Management. Re-checks module conflicts
+     * (stateless safety) before writing via the repository.
+     */
+    async savePaste(req: Request, res: Response) {
+        try {
+            const input = req.body as TestCasePasteSaveInput;
+
+            if (!input?.projectName?.trim()) {
+                return sendError(res, 400, 'A project must be selected before saving.');
+            }
+            if (!input.modules || !Array.isArray(input.modules) || input.modules.length === 0) {
+                return sendError(res, 400, 'Nothing to save: no modules in the paste payload.');
+            }
+
+            logger.info('POST /api/test-cases/paste/save', {
+                project: input.projectName,
+                modules: input.modules.length,
+            });
+
+            const result = await testCasePasteService.savePaste(input);
+            sendCreated(
+                res,
+                result.saved,
+                { total: result.total, modulesCreated: result.modulesCreated },
+                'Test cases pasted successfully',
+            );
+        } catch (error: any) {
+            handlePasteError(res, error);
+        }
+    },
+
+    /**
+     * POST /api/test-cases/quick-add
+     * Quick add a single test case (no import, no AI generation)
+     */
+    async quickAddTestCase(req: Request, res: Response) {
+        try {
+            const body = req.body;
+
+            // Validate required fields
+            if (!body.projectName?.trim()) {
+                return sendValidationError(res, { projectName: 'Project name is required' });
+            }
+            if (!body.module?.trim()) {
+                return sendValidationError(res, { module: 'Module is required' });
+            }
+            if (!body.name?.trim()) {
+                return sendValidationError(res, { name: 'Test case name is required' });
+            }
+            if (!body.priority) {
+                return sendValidationError(res, { priority: 'Priority is required' });
+            }
+            if (!body.testSteps || !Array.isArray(body.testSteps) || body.testSteps.length === 0) {
+                return sendValidationError(res, { testSteps: 'Test steps are required' });
+            }
+            if (!body.expectedResult?.trim()) {
+                return sendValidationError(res, { expectedResult: 'Expected result is required' });
+            }
+
+            const input = {
+                projectName: body.projectName,
+                module: body.module,
+                subModule: body.subModule,
+                tcId: body.tcId,
+                name: body.name,
+                description: body.description,
+                type: body.type,
+                priority: body.priority as any,
+                testSteps: body.testSteps,
+                expectedResult: body.expectedResult,
+                testStatus: body.testStatus,
+                actualResult: body.actualResult,
+                assignedTo: body.assignedTo,
+                executionDate: body.executionDate,
+                comments: body.comments,
+                relatedBugs: body.relatedBugs,
+                tags: body.tags,
+            };
+
+            logger.info('POST /api/test-cases/quick-add', { project: input.projectName, name: input.name });
+
+            const testCase = await testCaseRepository.save(input);
+            sendCreated(res, testCase, undefined, 'Test case added successfully');
+        } catch (error: any) {
+            logger.error('Quick add test case failed', { message: error.message });
+            sendError(res, 400, error.message || 'Failed to add test case');
+        }
+    },
 };
 
 /**
@@ -433,3 +558,28 @@ function handleImportError(res: Response, error: any): Response {
     logger.error('Test case import failed', { message: error?.message });
     return sendError(res, 500, error?.message || 'Failed to process import');
 }
+
+/**
+ * Map a test case paste error to a structured HTTP response. `TestCasePasteValidationError` carries an
+ * `errorType` + details (conflicting modules, missing columns, row errors) the frontend renders
+ * differently; it must NOT fall through to the generic global handler (which would 500 it).
+ * Module conflicts are 409 (state conflict); everything else is 400.
+ */
+function handlePasteError(res: Response, error: any): Response {
+    if (error instanceof TestCasePasteValidationError) {
+        const conflict = error.errorType === 'MODULE_EXISTS';
+        const status = conflict ? 409 : 400;
+        return res.status(status).json({
+            success: false,
+            error: error.message,
+            message: error.message,
+            errorType: error.errorType,
+            conflictingModules: error.details.conflictingModules,
+            missingColumns: error.details.missingColumns,
+            rowErrors: error.details.rowErrors,
+        });
+    }
+    logger.error('Test case paste failed', { message: error?.message });
+    return sendError(res, 500, error?.message || 'Failed to process paste');
+}
+

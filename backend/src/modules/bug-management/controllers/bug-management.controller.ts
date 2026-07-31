@@ -7,6 +7,7 @@ import { Request, Response, NextFunction } from 'express';
 import { sendSuccess, sendCreated, sendValidationError, sendError, paginate } from '../../../shared/http/responses';
 import bugGenerationService from '../services/bug-generation.service';
 import { bugImportService } from '../services/bug-import.service';
+import { bugPasteService } from '../services/bug-paste.service';
 import bugRepository from '../repositories/bug.repository';
 import logger from '../../../shared/logger';
 import {
@@ -20,6 +21,9 @@ import {
     BugStatus,
     BugImportSaveInput,
     BugImportValidationError,
+    BugPasteValidationError,
+    BugPasteSaveInput,
+    BugPasteSaveResult,
     isValidStatusTransition,
     nextStatuses,
 } from '../types';
@@ -215,6 +219,71 @@ export const bugManagementController = {
     },
 
     /**
+     * POST /api/bugs/paste
+     * Parse + validate pasted table data (Markdown, TSV, Excel, Google Sheets).
+     * Returns a preview; does NOT persist. Validation/conflict failures return a structured
+     * body (`errorType` + details) so the frontend can render tailored error UI.
+     */
+    async parsePaste(req: Request, res: Response) {
+        try {
+            const text = String(req.body?.text ?? '').trim();
+            const projectName = String(req.body?.projectName ?? '').trim();
+
+            if (!text) {
+                return sendError(res, 400, 'Please paste some data.');
+            }
+            if (!projectName) {
+                return sendError(res, 400, 'A project must be selected before pasting.');
+            }
+
+            logger.info('POST /api/bugs/paste', { project: projectName });
+
+            const preview = await bugPasteService.parseAndValidate(text, projectName);
+            sendSuccess(
+                res,
+                preview,
+                { totalBugs: preview.totalBugs },
+                'Paste parsed and validated successfully',
+            );
+        } catch (error: any) {
+            handleBugPasteError(res, error);
+        }
+    },
+
+    /**
+     * POST /api/bugs/paste/save
+     * Persist a validated paste preview into Bug Management. Re-checks Bug ID conflicts (stateless
+     * safety) before writing each bug via the repository — the same path manual/AI bugs take.
+     */
+    async savePaste(req: Request, res: Response) {
+        try {
+            const input = req.body as BugPasteSaveInput;
+
+            if (!input?.projectName?.trim()) {
+                return sendError(res, 400, 'A project must be selected before saving.');
+            }
+            if (!input.bugs || !Array.isArray(input.bugs) || input.bugs.length === 0) {
+                return sendError(res, 400, 'Nothing to save: no bugs in the paste payload.');
+            }
+
+            logger.info('POST /api/bugs/paste/save', {
+                project: input.projectName,
+                bugs: input.bugs.length,
+            });
+
+            const result = await bugPasteService.savePaste(input);
+            sendCreated(
+                res,
+                result.saved,
+                { total: result.total },
+                'Bugs pasted successfully',
+            );
+        } catch (error: any) {
+            handleBugPasteError(res, error);
+        }
+    },
+
+    /**
      * GET /api/bugs
      * List bugs with optional filters
      */
@@ -406,6 +475,82 @@ export const bugManagementController = {
             sendError(res, 500, error.message);
         }
     },
+
+    /**
+     * POST /api/bugs/quick-add
+     * Quick add a single bug (no import, no AI generation)
+     */
+    async quickAddBug(req: Request, res: Response) {
+        try {
+            const body = req.body;
+
+            // Validate required fields
+            if (!body.projectName?.trim()) {
+                return sendValidationError(res, { projectName: 'Project name is required' });
+            }
+            if (!body.module?.trim()) {
+                return sendValidationError(res, { module: 'Module is required' });
+            }
+            if (!body.title?.trim()) {
+                return sendValidationError(res, { title: 'Bug title is required' });
+            }
+            if (!body.severity) {
+                return sendValidationError(res, { severity: 'Severity is required' });
+            }
+            if (!body.priority) {
+                return sendValidationError(res, { priority: 'Priority is required' });
+            }
+            if (!body.description?.trim()) {
+                return sendValidationError(res, { description: 'Description is required' });
+            }
+            if (!body.stepsToReproduce || !Array.isArray(body.stepsToReproduce) || body.stepsToReproduce.length === 0) {
+                return sendValidationError(res, { stepsToReproduce: 'Steps to reproduce are required' });
+            }
+            if (!body.expectedResult?.trim()) {
+                return sendValidationError(res, { expectedResult: 'Expected result is required' });
+            }
+            if (!body.actualResult?.trim()) {
+                return sendValidationError(res, { actualResult: 'Actual result is required' });
+            }
+            if (!body.status) {
+                return sendValidationError(res, { status: 'Status is required' });
+            }
+
+            const input = {
+                bugId: body.bugId,
+                projectName: body.projectName,
+                layer: body.layer,
+                title: body.title,
+                description: body.description,
+                module: body.module,
+                severity: body.severity as any,
+                priority: body.priority as any,
+                status: body.status as any,
+                environment: body.environment,
+                precondition: body.precondition,
+                currentBehavior: body.currentBehavior,
+                stepsToReproduce: body.stepsToReproduce,
+                expectedResult: body.expectedResult,
+                actualResult: body.actualResult,
+                impact: body.impact,
+                assignee: body.assignee,
+                possibleRootCause: body.possibleRootCause,
+                suggestedFix: body.suggestedFix,
+                similarBugs: body.similarBugs,
+                missingInfo: body.missingInfo,
+                tags: body.tags,
+                aiConfidence: body.aiConfidence,
+            };
+
+            logger.info('POST /api/bugs/quick-add', { project: input.projectName, title: input.title });
+
+            const bug = await bugRepository.save(input);
+            sendCreated(res, bug, undefined, 'Bug added successfully');
+        } catch (error: any) {
+            logger.error('Quick add bug failed', { message: error.message });
+            sendError(res, 400, error.message || 'Failed to add bug');
+        }
+    },
 };
 
 /**
@@ -420,7 +565,7 @@ function handleBugImportError(res: Response, error: any): Response {
         const status = conflict ? 409 : 400;
         return res.status(status).json({
             success: false,
-            error: error.message, // apiClient normalizes on `error` || `message`
+            error: error.message,
             message: error.message,
             errorType: error.errorType,
             missingColumns: error.details.missingColumns,
@@ -431,4 +576,29 @@ function handleBugImportError(res: Response, error: any): Response {
     }
     logger.error('Bug import failed', { message: error?.message });
     return sendError(res, 500, error?.message || 'Failed to process import');
+}
+
+/**
+ * Map a bug paste error to a structured HTTP response. `BugPasteValidationError` carries an
+ * `errorType` + details (missing columns, row errors, duplicate/existing Bug IDs) the frontend
+ * renders differently; it must NOT fall through to the generic global handler (which would 500 it).
+ * Bug ID conflicts are 409 (state conflict); everything else is 400.
+ */
+function handleBugPasteError(res: Response, error: any): Response {
+    if (error instanceof BugPasteValidationError) {
+        const conflict = error.errorType === 'BUG_ID_EXISTS' || error.errorType === 'DUPLICATE_BUG_ID';
+        const status = conflict ? 409 : 400;
+        return res.status(status).json({
+            success: false,
+            error: error.message,
+            message: error.message,
+            errorType: error.errorType,
+            missingColumns: error.details.missingColumns,
+            rowErrors: error.details.rowErrors,
+            duplicateBugIds: error.details.duplicateBugIds,
+            existingBugIds: error.details.existingBugIds,
+        });
+    }
+    logger.error('Bug paste failed', { message: error?.message });
+    return sendError(res, 500, error?.message || 'Failed to process paste');
 }

@@ -49,8 +49,11 @@ function uploadXlsx(req: Request, res: Response, next: NextFunction): void {
 // Test case management
 router.post('/import', maybeAuthorize('testcase:create'), uploadXlsx, testCaseController.importTestCasePreview); // Parse + validate XLSX → preview
 router.post('/import/save', maybeAuthorize('testcase:create'), testCaseController.importTestCaseSave);            // Persist validated preview
+router.post('/paste', maybeAuthorize('testcase:create'), testCaseController.parsePaste); // Parse + validate pasted table → preview
+router.post('/paste/save', maybeAuthorize('testcase:create'), testCaseController.savePaste); // Persist validated paste
 router.post('/save', maybeAuthorize('testcase:create'), testCaseController.saveTestCase);             // Save single test case
 router.post('/bulk-save', maybeAuthorize('testcase:create'), testCaseController.bulkSaveTestCases);    // Bulk save from generator
+router.post('/quick-add', maybeAuthorize('testcase:create'), testCaseController.quickAddTestCase);    // Quick add single test case
 router.get('/', maybeAuthorize('report:view'), testCaseController.listTestCases);                      // List with filters
 router.get('/analytics', maybeAuthorize('report:view'), testCaseController.getAnalytics);              // Dashboard analytics
 router.get('/modules', maybeAuthorize('report:view'), testCaseController.getModuleTree);               // Module tree navigation

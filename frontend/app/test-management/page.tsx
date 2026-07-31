@@ -26,8 +26,10 @@ import { safeNumber } from '@/lib/safe-value';
 import {
     ClipboardList, CheckCircle, XCircle, Ban, Clock, RefreshCw, Download,
     Search, Loader2, Eye, Sparkles, TrendingUp,
-    AlertTriangle, Target, BarChart3, Users, FileText, Link2, Layers,
+    AlertTriangle, Target, BarChart3, Users, FileText, Link2, Layers, Plus,
 } from 'lucide-react';
+import { AddTestCaseDialog } from '@/features/test-case-management/components/AddTestCaseDialog';
+import { PasteTestCasesDialog } from '@/features/test-case-management/components/PasteTestCasesDialog';
 import * as XLSX from 'xlsx';
 import type {
     TestCase, TestCaseAnalytics, TestCaseStatus, TestCasePriority,
@@ -224,12 +226,19 @@ function TestManagementWorkspace() {
         // 3. Success → silent refresh (syncs Summary KPIs/charts). Error → refresh reverts to server truth.
         if (result.success) {
             toast.success('Test case updated successfully.');
-            refreshData();
+            loadData();
         } else {
             toast.error(result.error || 'Unable to update test case. Please try again.');
-            refreshData();
+            loadData();
         }
-    }, [members, user, refreshData, toast]);
+    }, [members, user, loadData, toast]);
+
+    /**
+     * Refresh data after adding a test case
+     */
+    const handleTestCaseAdded = useCallback(async () => {
+        await loadData();
+    }, [loadData]);
 
     useEffect(() => {
         // loadData is async with setState after await (safe); the rule can't trace through the
@@ -341,6 +350,7 @@ function TestManagementWorkspace() {
                                     onViewTestCase={goToDetails}
                                     onInlineUpdate={handleInlineUpdate}
                                     onRefresh={loadData}
+                                    onTestCaseAdded={handleTestCaseAdded}
                                     members={members}
                                     role={role}
                                     currentUserId={user?.id}
@@ -510,7 +520,7 @@ function SummaryView({ analytics }: { analytics: TestCaseAnalytics }) {
 /* ═══════════════════════════════════════════════════ */
 
 function TestCasesView({
-    testCases, moduleTree, projectName, onViewTestCase, onRefresh, onInlineUpdate, members, role, currentUserId, savingKey,
+    testCases, moduleTree, projectName, onViewTestCase, onRefresh, onInlineUpdate, onTestCaseAdded, members, role, currentUserId, savingKey,
 }: {
     testCases: TestCase[];
     moduleTree: ModuleNode[];
@@ -518,6 +528,7 @@ function TestCasesView({
     onViewTestCase: (tc: TestCase) => void;
     onRefresh: () => void;
     onInlineUpdate: (id: string, field: 'testStatus' | 'priority' | 'assignedTo', value: string) => void;
+    onTestCaseAdded?: () => void;
     members: ProjectMember[];
     role: 'admin' | 'qa_lead' | 'qa_engineer';
     currentUserId?: string;
@@ -530,6 +541,7 @@ function TestCasesView({
     const [search, setSearch] = useState<string>(() => readSession<{ search: string }>('tm.tcFilters', { search: '' }).search);
     const [statusFilter, setStatusFilter] = useState<string>(() => readSession<{ status: string }>('tm.tcFilters', { status: 'All' }).status);
     const [priorityFilter, setPriorityFilter] = useState<string>(() => readSession<{ priority: string }>('tm.tcFilters', { priority: 'All' }).priority);
+    const [showAddTestCaseDialog, setShowAddTestCaseDialog] = useState(false);
 
     // Persist the filter set so Back/refresh restore the exact table state.
     useEffect(() => {
@@ -632,7 +644,7 @@ function TestCasesView({
         <div className="space-y-4">
             {/* Toolbar — full width */}
             <div className="bg-white rounded-2xl border border-[#E2E8F0] p-4 space-y-4">
-                {/* Search + Status + Priority */}
+                {/* Search + Status + Priority + Add Button */}
                 <div className="flex items-center gap-3 flex-wrap">
                     <div className="relative flex-1 min-w-[220px]">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
@@ -646,6 +658,21 @@ function TestCasesView({
                     </div>
                     <FilterDropdown label="Status" value={statusFilter} options={['All', ...STATUS_OPTIONS]} onChange={setStatusFilter} />
                     <FilterDropdown label="Priority" value={priorityFilter} options={['All', 'Critical', 'High', 'Medium', 'Low']} onChange={setPriorityFilter} />
+                    <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => setShowAddTestCaseDialog(true)}
+                        leftIcon={<Plus className="w-4 h-4" />}
+                    >
+                        Paste Test Cases
+                    </Button>
+                    <PasteTestCasesDialog
+                        projectName={projectName}
+                        module={selectedModule || ''}
+                        open={showAddTestCaseDialog}
+                        onClose={() => setShowAddTestCaseDialog(false)}
+                        onSaved={onTestCaseAdded || (() => { })}
+                    />
                 </div>
 
                 {/* Module filter chips — only show modules that have test cases */}
@@ -722,6 +749,7 @@ function TestCasesView({
                     onClose={() => !deletingModule && setModuleToDelete(null)}
                 />
             )}
+
         </div>
     );
 }

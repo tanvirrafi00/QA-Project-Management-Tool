@@ -42,6 +42,39 @@ class TestCaseRepository {
         const tcId = input.tcId || this.generateTcId();
         const sortOrder = input.sortOrder ?? ++this.sortCounter;
 
+        // ── Validation ────────────────────────────────────────────────────────
+        // Required fields
+        if (!input.module?.trim()) {
+            throw new Error('Module is required');
+        }
+        if (!input.name?.trim()) {
+            throw new Error('Test case name is required');
+        }
+        if (!input.priority) {
+            throw new Error('Priority is required');
+        }
+        if (!input.testSteps || input.testSteps.length === 0) {
+            throw new Error('Test steps are required');
+        }
+        if (!input.expectedResult?.trim()) {
+            throw new Error('Expected result is required');
+        }
+
+        // Duplicate check: TC ID (if manually entered)
+        if (input.tcId) {
+            const existing = await this.getByTcId(input.tcId);
+            if (existing) {
+                throw new Error(`Test case with TC ID "${input.tcId}" already exists`);
+            }
+        }
+
+        // Duplicate check: Test Case Name within same module (warning only)
+        const existingCases = await this.getAll({ projectName: input.projectName, module: input.module });
+        const existingName = existingCases.find(tc => tc.name.toLowerCase().trim() === input.name.toLowerCase().trim());
+        if (existingName) {
+            logger.warn(`Duplicate test case name detected: "${input.name}" in module "${input.module}"`);
+        }
+
         const testCase: TestCase = {
             id,
             tcId,
@@ -71,6 +104,16 @@ class TestCaseRepository {
         this.testCases.set(id, testCase);
         logger.info(`Test case saved: ${tcId} (${testCase.name})`);
         return testCase;
+    }
+
+    /**
+     * Get test case by TC ID (display ID)
+     */
+    async getByTcId(tcId: string): Promise<TestCase | undefined> {
+        for (const tc of this.testCases.values()) {
+            if (tc.tcId === tcId) return tc;
+        }
+        return undefined;
     }
 
     /**

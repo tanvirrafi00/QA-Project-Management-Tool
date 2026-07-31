@@ -256,6 +256,65 @@ export interface BugImportSaveResult {
     total: number;
 }
 
+/** Paste-related types for quick-add from table data. */
+export interface BugPasteRow {
+    bugId: string;
+    module: string;
+    title: string;
+    severity: BugSeverity;
+    priority: BugPriority;
+    description: string;
+    stepsToReproduce: string[];
+    expectedResult: string;
+    actualResult: string;
+    impact: string;
+    status: BugStatus;
+    assignee: string;
+}
+
+export interface BugPastePreview {
+    projectName: string;
+    bugs: BugPasteRow[];
+    totalBugs: number;
+}
+
+export interface BugPasteSaveInput {
+    projectName: string;
+    bugs: BugPasteRow[];
+}
+
+export interface BugPasteSaveResult {
+    saved: Bug[];
+    total: number;
+}
+
+export type BugPasteErrorType =
+    | 'INVALID_FILE'
+    | 'INVALID_COLUMNS'
+    | 'EMPTY_PASTE'
+    | 'DUPLICATE_BUG_ID'
+    | 'BUG_ID_EXISTS'
+    | 'ROW_VALIDATION'
+    | 'TOO_MANY_ROWS'
+    | 'INVALID_FORMAT'
+    | 'PARSE_ERROR';
+
+export class BugPasteValidationError extends Error {
+    constructor(
+        public readonly errorType: BugPasteErrorType,
+        message: string,
+        public readonly details: {
+            missingColumns?: string[];
+            rowErrors?: Array<{ row: number; message: string }>;
+            duplicateBugIds?: string[];
+            existingBugIds?: string[];
+        } = {},
+    ) {
+        super(message);
+        this.name = 'BugPasteValidationError';
+    }
+}
+
 /** Structured error categories the frontend renders differently. */
 export type BugImportErrorType =
     | 'INVALID_FILE'

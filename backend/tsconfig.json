@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "commonjs",
+    "module": "esnext",
     "lib": [
       "ES2022"
     ],
@@ -12,7 +12,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "moduleResolution": "Bundler",
+    "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "types": [
       "node",

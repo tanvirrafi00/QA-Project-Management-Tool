@@ -16,8 +16,11 @@ import {
     Bug, AlertCircle, Clock, RefreshCw, TrendingUp,
     Download, Sparkles, Activity,
     AlertTriangle, Shield, Monitor, Server, Layers,
-    Search, Loader2, Eye, Upload,
+    Search, Loader2, Eye, Upload, Plus,
+    ArrowUp, ArrowDown, ArrowUpDown,
 } from 'lucide-react';
+import { AddBugDialog } from '@/features/bug-management/components/AddBugDialog';
+import { PasteBugsDialog } from '@/features/bug-management/components/PasteBugsDialog';
 import { useRouter } from 'next/navigation';
 import {
     fetchBugDashboardData, BugDashboardData, BugLayer, BugItem, BugStatus, BugSeverity, BugPriority,
@@ -30,6 +33,7 @@ import { bugService } from '@/features/bug-management/services/bug.service';
 import { projectService } from '@/features/project-management/services/project.service';
 import type { UpdateBugInput } from '@/features/bug-management/types';
 import type { ProjectMember } from '@/features/project-management/types';
+import { quickAddBug, type QuickAddBugInput } from '@/features/bug-management/services/bug-quick-add.service';
 import { InlineSelectCell } from '@/components/inline/InlineSelectCell';
 import { InlineAssigneeCell } from '@/components/inline/InlineAssigneeCell';
 import {
@@ -55,6 +59,8 @@ export default function BugDashboardPage() {
     const [data, setData] = useState<BugDashboardData | null>(null);
     const [loading, setLoading] = useState(true);
     const [members, setMembers] = useState<ProjectMember[]>([]);
+    const [showAddBugDialog, setShowAddBugDialog] = useState(false);
+    const [addBugSaving, setAddBugSaving] = useState(false);
     // Key (`${bugId}:${field}`) of the inline cell currently saving — drives its spinner + revert.
     const [saving, setSaving] = useState<string | null>(null);
     // Persist the active tab + list scroll so returning from Bug Details lands where you left off.
@@ -140,6 +146,29 @@ export default function BugDashboardPage() {
             refreshData();
         }
     }, [members, user, refreshData, toast]);
+
+    /**
+     * Handle adding a bug
+     */
+    const handleAddBug = useCallback(async (input: QuickAddBugInput) => {
+        setAddBugSaving(true);
+        const result = await quickAddBug(input);
+        setAddBugSaving(false);
+
+        if (result.success) {
+            toast.success('Bug added successfully');
+            refreshData();
+        } else {
+            toast.error(result.error || 'Failed to add bug');
+        }
+    }, [refreshData, toast]);
+
+    /**
+     * Refresh data after adding a bug (called by dialog)
+     */
+    const handleBugSaved = useCallback(async () => {
+        await refreshData();
+    }, [refreshData]);
 
     const handleViewBug = useCallback((bugId: string) => {
         router.push(`/bugs/${bugId}`);
@@ -248,10 +277,14 @@ export default function BugDashboardPage() {
                                     onViewBug={handleViewBug}
                                     loadingBug={false}
                                     onInlineUpdate={handleInlineUpdate}
+                                    onAddBug={handleAddBug}
+                                    addBugSaving={addBugSaving}
                                     members={members}
                                     role={role}
                                     currentUserId={user?.id}
                                     savingKey={saving}
+                                    project={project}
+                                    onBugAdded={handleBugSaved}
                                 />
                             )}
                         </>
@@ -471,18 +504,79 @@ function DashboardView({ data, onExport, onViewBug }: { data: BugDashboardData; 
 /* ═══════════════════════════════════════════════════ */
 
 function BugListView({
-    data, onExport, onViewBug, loadingBug, onInlineUpdate, members, role, currentUserId, savingKey,
+    data, onExport, onViewBug, loadingBug, onInlineUpdate, onAddBug, addBugSaving, members, role, currentUserId, savingKey, project, onBugAdded,
 }: {
     data: BugDashboardData;
     onExport: (layer?: LayerFilter) => void;
     onViewBug: (bugId: string) => void;
     loadingBug: boolean;
     onInlineUpdate: (bugId: string, field: 'status' | 'severity' | 'priority' | 'assignee', value: string) => void;
+    onAddBug?: (input: QuickAddBugInput) => Promise<void>;
+    addBugSaving?: boolean;
     members: ProjectMember[];
     role: 'admin' | 'qa_lead' | 'qa_engineer';
     currentUserId?: string;
     savingKey: string | null;
+    project?: string;
+    onBugAdded?: () => void;
 }) {
+    const [showAddBugDialog, setShowAddBugDialog] = useState(false);
+
+    // Default sort: Bug ID ascending (so the list always opens in a predictable order).
+    const [sortKey, setSortKey] = useState<string>('id');
+    const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+    /** Toggle sort: click a column → sort asc; click again → desc. */
+    const handleSort = (key: string) => {
+        if (sortKey === key) {
+            setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+        } else {
+            setSortKey(key);
+            setSortDir('asc');
+        }
+    };
+
+    /**
+     * Natural/numeric-aware comparator. Extracts the TRAILING numeric portion of an ID so that
+     * "BUG-P2-BE-MRC-065" → 65, "BUG-002" → 2. Falls back to localeCompare when no trailing
+     * number is present (or when the numbers are equal).
+     */
+    const compareValues = (a: string, b: string): number => {
+        const aStr = String(a ?? '');
+        const bStr = String(b ?? '');
+        // Extract only the trailing digits (the sequence number at the end of the ID).
+        const aMatch = aStr.match(/(\d+)$/);
+        const bMatch = bStr.match(/(\d+)$/);
+        if (aMatch && bMatch) {
+            const aNum = parseInt(aMatch[1], 10);
+            const bNum = parseInt(bMatch[1], 10);
+            if (aNum !== bNum) return aNum - bNum;
+        }
+        return aStr.localeCompare(bStr, undefined, { numeric: true, sensitivity: 'base' });
+    };
+
+    /** Extract the raw sort value for a given column key from a bug row. */
+    const getSortValue = (bug: BugItem, key: string): string => {
+        switch (key) {
+            case 'id': return bug.id;
+            case 'title': return bug.title;
+            case 'module': return bug.module;
+            case 'layer': return bug.layer;
+            case 'severity': return bug.severity;
+            case 'priority': return bug.priority;
+            case 'status': return bug.status;
+            case 'assignee': return bug.assignee;
+            case 'age': return String(bug.age);
+            default: return '';
+        }
+    };
+
+    const handleBugSaved = useCallback(async () => {
+        setShowAddBugDialog(false);
+        if (onBugAdded) {
+            await onBugAdded();
+        }
+    }, [onBugAdded]);
     // Restore the list state (filters + pagination) saved before navigating to Bug Details, so the
     // user lands back where they left off. SSR-safe (sessionStorage is unavailable on the server).
     const restored = typeof window === 'undefined'
@@ -494,14 +588,19 @@ function BugListView({
     const [search, setSearch] = useState((restored.search as string) ?? '');
 
     const filteredBugs = useMemo(() => {
-        return data.allBugs.filter(bug => {
+        const filtered = data.allBugs.filter(bug => {
             if (layerFilter !== 'All' && bug.layer !== layerFilter) return false;
             if (statusFilter !== 'All' && bug.status !== statusFilter) return false;
             if (severityFilter !== 'All' && bug.severity !== severityFilter) return false;
             if (search && !bug.title.toLowerCase().includes(search.toLowerCase()) && !bug.id.toLowerCase().includes(search.toLowerCase())) return false;
             return true;
         });
-    }, [data.allBugs, layerFilter, statusFilter, severityFilter, search]);
+        // Sort the filtered list by the active sort key/direction.
+        return filtered.sort((a, b) => {
+            const cmp = compareValues(getSortValue(a, sortKey), getSortValue(b, sortKey));
+            return sortDir === 'asc' ? cmp : -cmp;
+        });
+    }, [data.allBugs, layerFilter, statusFilter, severityFilter, search, sortKey, sortDir]);
 
     // Whether any layer/status/severity/search filter is active — drives empty-state copy.
     const hasActiveFilters = layerFilter !== 'All' || statusFilter !== 'All' || severityFilter !== 'All' || !!search;
@@ -564,6 +663,16 @@ function BugListView({
                 </div>
                 <FilterDropdown label="Status" value={statusFilter} options={['All', 'Open', 'Assigned', 'In Progress', 'Fixed', 'Ready For QA', 'Verified', 'Closed', 'Reopened']} onChange={setStatusFilter} />
                 <FilterDropdown label="Severity" value={severityFilter} options={['All', 'Critical', 'High', 'Medium', 'Low']} onChange={setSeverityFilter} />
+                <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => setShowAddBugDialog(true)}
+                    leftIcon={<Plus className="w-4 h-4" />}
+                    isLoading={addBugSaving}
+                    disabled={addBugSaving}
+                >
+                    Paste Bugs
+                </Button>
                 <Button variant="secondary" size="sm" onClick={() => onExport(layerFilter)} leftIcon={<Download className="w-4 h-4" />}>
                     Export
                 </Button>
@@ -583,16 +692,34 @@ function BugListView({
                     <table className="w-full">
                         <thead>
                             <tr className="bg-[#F8FAFC] border-b border-[#E2E8F0]">
-                                <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider">Bug ID</th>
-                                <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider">Title</th>
-                                <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider">Module</th>
-                                <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider">Layer</th>
-                                <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider">Severity</th>
-                                <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider">Priority</th>
-                                <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider">Status</th>
-                                <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider">Assignee</th>
-                                <th className="text-right px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider">Age</th>
-                                <th className="text-center px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider">Actions</th>
+                                <th onClick={() => handleSort('id')} className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider cursor-pointer hover:text-[#0F172A] hover:bg-[#F1F5F9] transition-colors select-none whitespace-nowrap">
+                                    <span className="inline-flex items-center gap-1">Bug ID {sortKey === 'id' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-[#06B6D4]" /> : <ArrowDown className="w-3 h-3 text-[#06B6D4]" />) : <ArrowUpDown className="w-3 h-3 text-[#CBD5E1]" />}</span>
+                                </th>
+                                <th onClick={() => handleSort('title')} className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider cursor-pointer hover:text-[#0F172A] hover:bg-[#F1F5F9] transition-colors select-none whitespace-nowrap">
+                                    <span className="inline-flex items-center gap-1">Title {sortKey === 'title' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-[#06B6D4]" /> : <ArrowDown className="w-3 h-3 text-[#06B6D4]" />) : <ArrowUpDown className="w-3 h-3 text-[#CBD5E1]" />}</span>
+                                </th>
+                                <th onClick={() => handleSort('module')} className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider cursor-pointer hover:text-[#0F172A] hover:bg-[#F1F5F9] transition-colors select-none whitespace-nowrap">
+                                    <span className="inline-flex items-center gap-1">Module {sortKey === 'module' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-[#06B6D4]" /> : <ArrowDown className="w-3 h-3 text-[#06B6D4]" />) : <ArrowUpDown className="w-3 h-3 text-[#CBD5E1]" />}</span>
+                                </th>
+                                <th onClick={() => handleSort('layer')} className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider cursor-pointer hover:text-[#0F172A] hover:bg-[#F1F5F9] transition-colors select-none whitespace-nowrap">
+                                    <span className="inline-flex items-center gap-1">Layer {sortKey === 'layer' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-[#06B6D4]" /> : <ArrowDown className="w-3 h-3 text-[#06B6D4]" />) : <ArrowUpDown className="w-3 h-3 text-[#CBD5E1]" />}</span>
+                                </th>
+                                <th onClick={() => handleSort('severity')} className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider cursor-pointer hover:text-[#0F172A] hover:bg-[#F1F5F9] transition-colors select-none whitespace-nowrap">
+                                    <span className="inline-flex items-center gap-1">Severity {sortKey === 'severity' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-[#06B6D4]" /> : <ArrowDown className="w-3 h-3 text-[#06B6D4]" />) : <ArrowUpDown className="w-3 h-3 text-[#CBD5E1]" />}</span>
+                                </th>
+                                <th onClick={() => handleSort('priority')} className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider cursor-pointer hover:text-[#0F172A] hover:bg-[#F1F5F9] transition-colors select-none whitespace-nowrap">
+                                    <span className="inline-flex items-center gap-1">Priority {sortKey === 'priority' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-[#06B6D4]" /> : <ArrowDown className="w-3 h-3 text-[#06B6D4]" />) : <ArrowUpDown className="w-3 h-3 text-[#CBD5E1]" />}</span>
+                                </th>
+                                <th onClick={() => handleSort('status')} className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider cursor-pointer hover:text-[#0F172A] hover:bg-[#F1F5F9] transition-colors select-none whitespace-nowrap">
+                                    <span className="inline-flex items-center gap-1">Status {sortKey === 'status' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-[#06B6D4]" /> : <ArrowDown className="w-3 h-3 text-[#06B6D4]" />) : <ArrowUpDown className="w-3 h-3 text-[#CBD5E1]" />}</span>
+                                </th>
+                                <th onClick={() => handleSort('assignee')} className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider cursor-pointer hover:text-[#0F172A] hover:bg-[#F1F5F9] transition-colors select-none whitespace-nowrap">
+                                    <span className="inline-flex items-center gap-1">Assignee {sortKey === 'assignee' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-[#06B6D4]" /> : <ArrowDown className="w-3 h-3 text-[#06B6D4]" />) : <ArrowUpDown className="w-3 h-3 text-[#CBD5E1]" />}</span>
+                                </th>
+                                <th onClick={() => handleSort('age')} className="text-right px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider cursor-pointer hover:text-[#0F172A] hover:bg-[#F1F5F9] transition-colors select-none whitespace-nowrap">
+                                    <span className="inline-flex items-center gap-1">Age {sortKey === 'age' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-[#06B6D4]" /> : <ArrowDown className="w-3 h-3 text-[#06B6D4]" />) : <ArrowUpDown className="w-3 h-3 text-[#CBD5E1]" />}</span>
+                                </th>
+                                <th className="text-center px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider whitespace-nowrap">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -607,69 +734,69 @@ function BugListView({
                                 const canEditStatus = canEditClassified || (role === 'qa_engineer' && !!bug.assigneeId && bug.assigneeId === currentUserId);
                                 const isSaving = (field: string) => savingKey === `${bug.id}:${field}`;
                                 return (
-                                <tr key={bug.id} className="border-b border-[#F1F5F9] hover:bg-[#F8FAFC] transition-colors cursor-pointer" onClick={() => onViewBug(bug.id)}>
-                                    <td className="px-4 py-2.5 text-sm font-mono font-medium text-[#06B6D4] whitespace-nowrap">{bug.id}</td>
-                                    <td className="px-4 py-2.5 text-sm text-[#1E293B] max-w-xs truncate">{bug.title}</td>
-                                    <td className="px-4 py-2.5 text-sm text-[#64748B] whitespace-nowrap">{bug.module}</td>
-                                    <td className="px-4 py-2.5"><LayerBadge layer={bug.layer} /></td>
-                                    <td className="px-4 py-2.5">
-                                        {canEditClassified ? (
-                                            <InlineSelectCell
-                                                value={bug.severity}
-                                                options={SEVERITIES.map(s => ({ value: s, label: s, icon: <Dot color={SEVERITY_COLOR[s]} /> }))}
-                                                accentColor={SEVERITY_COLOR[bug.severity]}
-                                                loading={isSaving('severity')}
-                                                onChange={(v) => onInlineUpdate(bug.id, 'severity', v)}
-                                            />
-                                        ) : <SeverityBadge severity={bug.severity} />}
-                                    </td>
-                                    <td className="px-4 py-2.5">
-                                        {canEditClassified ? (
-                                            <InlineSelectCell
-                                                value={bug.priority}
-                                                options={PRIORITIES.map(p => ({ value: p, label: p, icon: <Dot color={PRIORITY_COLOR[p]} /> }))}
-                                                accentColor={PRIORITY_COLOR[bug.priority]}
-                                                loading={isSaving('priority')}
-                                                onChange={(v) => onInlineUpdate(bug.id, 'priority', v)}
-                                            />
-                                        ) : <span className="text-sm text-[#64748B]">{bug.priority}</span>}
-                                    </td>
-                                    <td className="px-4 py-2.5">
-                                        {canEditStatus ? (
-                                            <InlineSelectCell
-                                                value={bug.status}
-                                                options={nextStatuses(bug.status).map(s => ({ value: s, label: s, icon: <Dot color={STATUS_COLOR[s]} /> }))}
-                                                accentColor={STATUS_COLOR[bug.status]}
-                                                loading={isSaving('status')}
-                                                onChange={(v) => onInlineUpdate(bug.id, 'status', v)}
-                                            />
-                                        ) : <StatusBadge status={bug.status} />}
-                                    </td>
-                                    <td className="px-4 py-2.5 whitespace-nowrap">
-                                        {canEditClassified ? (
-                                            <InlineAssigneeCell
-                                                assigneeId={bug.assigneeId || ''}
-                                                assigneeName={bug.assignee}
-                                                members={members}
-                                                loading={isSaving('assignee')}
-                                                onChange={(v) => onInlineUpdate(bug.id, 'assignee', v)}
-                                            />
-                                        ) : <span className="text-sm text-[#64748B]">{bug.assignee}</span>}
-                                    </td>
-                                    <td className="px-4 py-2.5 text-sm text-right">
-                                        <span className={`font-semibold ${bug.age > 15 ? 'text-[#EF4444]' : bug.age > 7 ? 'text-[#F97316]' : 'text-[#64748B]'}`}>{bug.age}d</span>
-                                    </td>
-                                    <td className="px-4 py-2.5 text-center">
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); onViewBug(bug.id); }}
-                                            disabled={loadingBug}
-                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#06B6D4] hover:bg-[#ECFEFF] transition-colors disabled:opacity-50"
-                                        >
-                                            {loadingBug ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
-                                            View
-                                        </button>
-                                    </td>
-                                </tr>
+                                    <tr key={bug.id} className="border-b border-[#F1F5F9] hover:bg-[#F8FAFC] transition-colors cursor-pointer" onClick={() => onViewBug(bug.id)}>
+                                        <td className="px-4 py-2.5 text-sm font-mono font-medium text-[#06B6D4] whitespace-nowrap">{bug.id}</td>
+                                        <td className="px-4 py-2.5 text-sm text-[#1E293B] max-w-xs truncate">{bug.title}</td>
+                                        <td className="px-4 py-2.5 text-sm text-[#64748B] whitespace-nowrap">{bug.module}</td>
+                                        <td className="px-4 py-2.5"><LayerBadge layer={bug.layer} /></td>
+                                        <td className="px-4 py-2.5">
+                                            {canEditClassified ? (
+                                                <InlineSelectCell
+                                                    value={bug.severity}
+                                                    options={SEVERITIES.map(s => ({ value: s, label: s, icon: <Dot color={SEVERITY_COLOR[s]} /> }))}
+                                                    accentColor={SEVERITY_COLOR[bug.severity]}
+                                                    loading={isSaving('severity')}
+                                                    onChange={(v) => onInlineUpdate(bug.id, 'severity', v)}
+                                                />
+                                            ) : <SeverityBadge severity={bug.severity} />}
+                                        </td>
+                                        <td className="px-4 py-2.5">
+                                            {canEditClassified ? (
+                                                <InlineSelectCell
+                                                    value={bug.priority}
+                                                    options={PRIORITIES.map(p => ({ value: p, label: p, icon: <Dot color={PRIORITY_COLOR[p]} /> }))}
+                                                    accentColor={PRIORITY_COLOR[bug.priority]}
+                                                    loading={isSaving('priority')}
+                                                    onChange={(v) => onInlineUpdate(bug.id, 'priority', v)}
+                                                />
+                                            ) : <span className="text-sm text-[#64748B]">{bug.priority}</span>}
+                                        </td>
+                                        <td className="px-4 py-2.5">
+                                            {canEditStatus ? (
+                                                <InlineSelectCell
+                                                    value={bug.status}
+                                                    options={nextStatuses(bug.status).map(s => ({ value: s, label: s, icon: <Dot color={STATUS_COLOR[s]} /> }))}
+                                                    accentColor={STATUS_COLOR[bug.status]}
+                                                    loading={isSaving('status')}
+                                                    onChange={(v) => onInlineUpdate(bug.id, 'status', v)}
+                                                />
+                                            ) : <StatusBadge status={bug.status} />}
+                                        </td>
+                                        <td className="px-4 py-2.5 whitespace-nowrap">
+                                            {canEditClassified ? (
+                                                <InlineAssigneeCell
+                                                    assigneeId={bug.assigneeId || ''}
+                                                    assigneeName={bug.assignee}
+                                                    members={members}
+                                                    loading={isSaving('assignee')}
+                                                    onChange={(v) => onInlineUpdate(bug.id, 'assignee', v)}
+                                                />
+                                            ) : <span className="text-sm text-[#64748B]">{bug.assignee}</span>}
+                                        </td>
+                                        <td className="px-4 py-2.5 text-sm text-right">
+                                            <span className={`font-semibold ${bug.age > 15 ? 'text-[#EF4444]' : bug.age > 7 ? 'text-[#F97316]' : 'text-[#64748B]'}`}>{bug.age}d</span>
+                                        </td>
+                                        <td className="px-4 py-2.5 text-center">
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); onViewBug(bug.id); }}
+                                                disabled={loadingBug}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#06B6D4] hover:bg-[#ECFEFF] transition-colors disabled:opacity-50"
+                                            >
+                                                {loadingBug ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
+                                                View
+                                            </button>
+                                        </td>
+                                    </tr>
                                 );
                             })}
                         </tbody>
@@ -689,6 +816,16 @@ function BugListView({
                     />
                 )}
             </div>
+
+            {/* Paste Bugs Dialog */}
+            {showAddBugDialog && (
+                <PasteBugsDialog
+                    projectName={project || ''}
+                    open={showAddBugDialog}
+                    onClose={() => setShowAddBugDialog(false)}
+                    onSaved={handleBugSaved}
+                />
+            )}
         </>
     );
 }

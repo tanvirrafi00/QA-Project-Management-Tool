@@ -50,9 +50,14 @@ function uploadXlsx(req: Request, res: Response, next: NextFunction): void {
 router.post('/import', maybeAuthorize('bug:create'), uploadXlsx, bugManagementController.importBugPreview); // Parse + validate XLSX → preview
 router.post('/import/save', maybeAuthorize('bug:create'), bugManagementController.importBugSave);           // Persist validated preview
 
+// Bug paste (Markdown, TSV, Excel, Google Sheets)
+router.post('/paste', maybeAuthorize('bug:create'), bugManagementController.parsePaste); // Parse + validate pasted table → preview
+router.post('/paste/save', maybeAuthorize('bug:create'), bugManagementController.savePaste); // Persist validated paste
+
 // Bug generation & management
 router.post('/generate', maybeAuthorize('bug:create'), bugManagementController.generateBug);     // AI generate bug report
 router.post('/save', maybeAuthorize('bug:create'), bugManagementController.saveBug);             // Save bug to repository
+router.post('/quick-add', maybeAuthorize('bug:create'), bugManagementController.quickAddBug);    // Quick add single bug
 router.get('/', maybeAuthorize('report:view'), bugManagementController.listBugs);                 // List bugs with filters
 router.get('/analytics', maybeAuthorize('report:view'), bugManagementController.getAnalytics);    // Dashboard analytics
 router.get('/:id/history', maybeAuthorize('report:view'), bugManagementController.getBugHistory); // Get bug edit history

@@ -287,3 +287,61 @@ export class ImportValidationError extends Error {
         this.name = 'ImportValidationError';
     }
 }
+
+/** Paste-related types for quick-add from table data. */
+export interface TestCasePasteRow {
+    tcId: string;
+    name: string;
+    priority: TestCasePriority;
+    testSteps: string[];
+    expectedResult: string;
+    testStatus: TestCaseStatus;
+    actualResult: string;
+    assignedTo: string;
+    executionDate: string | null;
+    relatedBugs: string[];
+    comments: string;
+}
+
+export interface TestCasePastePreview {
+    projectName: string;
+    modules: ImportedModule[];
+    modulesCount: number;
+    totalCases: number;
+}
+
+export interface TestCasePasteSaveInput {
+    projectName: string;
+    modules: ImportedModule[];
+}
+
+export interface TestCasePasteSaveResult {
+    saved: TestCase[];
+    total: number;
+    modulesCreated: number;
+}
+
+export type TestCasePasteErrorType =
+    | 'INVALID_FILE'
+    | 'INVALID_COLUMNS'
+    | 'EMPTY_PASTE'
+    | 'MODULE_EXISTS'
+    | 'ROW_VALIDATION'
+    | 'TOO_MANY_ROWS'
+    | 'INVALID_FORMAT'
+    | 'PARSE_ERROR';
+
+export class TestCasePasteValidationError extends Error {
+    constructor(
+        public readonly errorType: TestCasePasteErrorType,
+        message: string,
+        public readonly details: {
+            conflictingModules?: string[];
+            missingColumns?: string[];
+            rowErrors?: Array<{ row: number; message: string }>;
+        } = {},
+    ) {
+        super(message);
+        this.name = 'TestCasePasteValidationError';
+    }
+}

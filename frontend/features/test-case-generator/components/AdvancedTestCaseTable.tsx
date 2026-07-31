@@ -14,7 +14,8 @@
  * render-prop adds a trailing Actions column for editable contexts (e.g. Test Management).
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 
 /** Union of the fields used by either test-case shape (generator or persisted). Fields are null- and
  *  undefined-tolerant so BOTH shapes (persisted `| null`, generator `| undefined`) are assignable. */
@@ -68,8 +69,10 @@ function Badge({ text, className }: { text: string; className: string }) {
     );
 }
 
-/** Field-tolerant accessors (work for both generator + persisted shapes). */
-const tcId = (tc: TestCaseRow) => tc.id || tc.tcId || '—';
+/** Field-tolerant accessors (work for both generator + persisted shapes).
+ *  Prefers the human-readable display ID (`tcId`, e.g. "TC-001") over the internal
+ *  UUID/random `id` so imported IDs from Excel are shown in the list. */
+const tcId = (tc: TestCaseRow) => tc.tcId || tc.id || '—';
 const tcName = (tc: TestCaseRow) => tc.name || tc.scenario || '—';
 const tcSteps = (tc: TestCaseRow) => tc.steps || tc.testSteps || [];
 const tcRelatedBugs = (tc: TestCaseRow) => {
@@ -135,6 +138,9 @@ export function AdvancedTestCaseTable<T extends TestCaseRow>({
     emptyMessage,
 }: AdvancedTestCaseTableProps<T>) {
     const [hidden, setHidden] = useState<Set<string>>(new Set());
+    // Default sort: TC ID ascending (so the list always opens in a predictable order).
+    const [sortKey, setSortKey] = useState<string>('id');
+    const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
     const toggle = (key: string) =>
         setHidden((prev) => {
@@ -143,6 +149,63 @@ export function AdvancedTestCaseTable<T extends TestCaseRow>({
             else next.add(key);
             return next;
         });
+
+    /** Toggle sort: click a column → sort asc; click again → desc; click again → back to asc. */
+    const handleSort = (key: string) => {
+        if (sortKey === key) {
+            setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+        } else {
+            setSortKey(key);
+            setSortDir('asc');
+        }
+    };
+
+    /**
+     * Natural/numeric-aware comparator. Extracts the TRAILING numeric portion of an ID so that
+     * "MU-003" → 3, "TC-010" → 10, "BUG-P2-BE-MRC-065" → 65. Falls back to localeCompare when no
+     * trailing number is present (or when the numbers are equal).
+     */
+    const compareValues = (a: string, b: string): number => {
+        const aStr = String(a ?? '');
+        const bStr = String(b ?? '');
+        // Extract only the trailing digits (the sequence number at the end of the ID).
+        const aMatch = aStr.match(/(\d+)$/);
+        const bMatch = bStr.match(/(\d+)$/);
+        if (aMatch && bMatch) {
+            const aNum = parseInt(aMatch[1], 10);
+            const bNum = parseInt(bMatch[1], 10);
+            if (aNum !== bNum) return aNum - bNum;
+        }
+        return aStr.localeCompare(bStr, undefined, { numeric: true, sensitivity: 'base' });
+    };
+
+    /** Extract the raw sort value for a given column key from a test-case row. */
+    const getSortValue = (tc: TestCaseRow, key: string): string => {
+        switch (key) {
+            case 'id': return tcId(tc);
+            case 'name': return tcName(tc);
+            case 'module': return tc.module || 'General';
+            case 'priority': return tc.priority || 'Medium';
+            case 'testStatus': return tc.testStatus || 'Not Executed';
+            case 'assignedTo': return tc.assignedTo || 'Unassigned';
+            case 'executionDate': return tc.executionDate || '';
+            case 'expectedResult': return tc.expectedResult || '';
+            case 'actualResult': return tc.actualResult || '';
+            case 'relatedBugs': return tcRelatedBugs(tc);
+            case 'comments': return tc.comments || '';
+            default: return '';
+        }
+    };
+
+    // Sort the rows client-side (stable: equal keys keep their original order).
+    const sortedTestCases = useMemo(() => {
+        const rows = [...testCases];
+        rows.sort((a, b) => {
+            const cmp = compareValues(getSortValue(a, sortKey), getSortValue(b, sortKey));
+            return sortDir === 'asc' ? cmp : -cmp;
+        });
+        return rows;
+    }, [testCases, sortKey, sortDir]);
 
     const visibleColumns = TEST_CASE_COLUMNS.filter((c) => !hidden.has(c.key));
     const totalWidth = visibleColumns.reduce((sum, c) => sum + c.width, 0) + (actions ? 140 : 0);
@@ -159,11 +222,10 @@ export function AdvancedTestCaseTable<T extends TestCaseRow>({
                             key={col.key}
                             type="button"
                             onClick={() => toggle(col.key)}
-                            className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
-                                isHidden
-                                    ? 'bg-white text-[#94A3B8] border-[#E2E8F0] line-through'
-                                    : 'bg-[#ECFEFF] text-[#0E7490] border-[#A5F3FC]'
-                            }`}
+                            className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${isHidden
+                                ? 'bg-white text-[#94A3B8] border-[#E2E8F0] line-through'
+                                : 'bg-[#ECFEFF] text-[#0E7490] border-[#A5F3FC]'
+                                }`}
                         >
                             {col.label}
                         </button>
@@ -186,15 +248,28 @@ export function AdvancedTestCaseTable<T extends TestCaseRow>({
                     <table className="border-collapse" style={{ minWidth: `${totalWidth}px` }}>
                         <thead>
                             <tr className="bg-[#F8FAFC]">
-                                {visibleColumns.map((col) => (
-                                    <th
-                                        key={col.key}
-                                        className="sticky top-0 z-10 bg-[#F8FAFC] text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider border-b border-[#E2E8F0] whitespace-nowrap"
-                                        style={{ width: `${col.width}px`, minWidth: `${col.width}px` }}
-                                    >
-                                        {col.label}
-                                    </th>
-                                ))}
+                                {visibleColumns.map((col) => {
+                                    const isActive = sortKey === col.key;
+                                    return (
+                                        <th
+                                            key={col.key}
+                                            onClick={() => handleSort(col.key)}
+                                            className="sticky top-0 z-10 bg-[#F8FAFC] text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider border-b border-[#E2E8F0] whitespace-nowrap cursor-pointer hover:text-[#0F172A] hover:bg-[#F1F5F9] transition-colors select-none"
+                                            style={{ width: `${col.width}px`, minWidth: `${col.width}px` }}
+                                        >
+                                            <span className="inline-flex items-center gap-1">
+                                                {col.label}
+                                                {isActive ? (
+                                                    sortDir === 'asc'
+                                                        ? <ArrowUp className="w-3 h-3 text-[#06B6D4]" />
+                                                        : <ArrowDown className="w-3 h-3 text-[#06B6D4]" />
+                                                ) : (
+                                                    <ArrowUpDown className="w-3 h-3 text-[#CBD5E1] opacity-0 group-hover:opacity-100" />
+                                                )}
+                                            </span>
+                                        </th>
+                                    );
+                                })}
                                 {actions && (
                                     <th
                                         className="sticky top-0 z-10 bg-[#F8FAFC] text-right px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider border-b border-[#E2E8F0] whitespace-nowrap"
@@ -206,14 +281,14 @@ export function AdvancedTestCaseTable<T extends TestCaseRow>({
                             </tr>
                         </thead>
                         <tbody>
-                            {testCases.length === 0 ? (
+                            {sortedTestCases.length === 0 ? (
                                 <tr>
                                     <td colSpan={visibleColumns.length + (actions ? 1 : 0)} className="px-4 py-12 text-center text-sm text-[#94A3B8]">
                                         {emptyMessage || 'No test cases in this view.'}
                                     </td>
                                 </tr>
                             ) : (
-                                testCases.map((tc) => (
+                                sortedTestCases.map((tc) => (
                                     <tr
                                         key={tcId(tc) + (tc.name || '')}
                                         onClick={() => onRowClick?.(tc)}

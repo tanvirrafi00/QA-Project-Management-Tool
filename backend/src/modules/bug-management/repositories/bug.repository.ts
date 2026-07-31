@@ -39,6 +39,51 @@ class BugRepository {
         const id = `bug_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         const now = new Date().toISOString();
 
+        // ── Validation ────────────────────────────────────────────────────────
+        // Required fields
+        if (!input.module?.trim()) {
+            throw new Error('Module is required');
+        }
+        if (!input.title?.trim()) {
+            throw new Error('Bug title is required');
+        }
+        if (!input.severity) {
+            throw new Error('Severity is required');
+        }
+        if (!input.priority) {
+            throw new Error('Priority is required');
+        }
+        if (!input.description?.trim()) {
+            throw new Error('Description is required');
+        }
+        if (!input.stepsToReproduce || input.stepsToReproduce.length === 0) {
+            throw new Error('Steps to reproduce are required');
+        }
+        if (!input.expectedResult?.trim()) {
+            throw new Error('Expected result is required');
+        }
+        if (!input.actualResult?.trim()) {
+            throw new Error('Actual result is required');
+        }
+        if (!input.status) {
+            throw new Error('Status is required');
+        }
+
+        // Duplicate check: Bug ID (if manually entered)
+        if (input.bugId) {
+            const existing = await this.getByBugId(input.bugId);
+            if (existing) {
+                throw new Error(`Bug with ID "${input.bugId}" already exists`);
+            }
+        }
+
+        // Duplicate check: Title within same module (warning only)
+        const existingBugs = await this.getAll({ projectName: input.projectName, module: input.module });
+        const existingTitle = existingBugs.find(bug => bug.title.toLowerCase().trim() === input.title.toLowerCase().trim());
+        if (existingTitle) {
+            logger.warn(`Duplicate bug title detected: "${input.title}" in module "${input.module}"`);
+        }
+
         const bug: Bug = {
             id,
             bugId: input.bugId,
@@ -74,6 +119,16 @@ class BugRepository {
         this.bugs.set(id, bug);
         logger.info(`Bug saved: ${bug.bugId} (${bug.title})`);
         return bug;
+    }
+
+    /**
+     * Get bug by Bug ID (display ID)
+     */
+    async getByBugId(bugId: string): Promise<Bug | undefined> {
+        for (const bug of this.bugs.values()) {
+            if (bug.bugId === bugId) return bug;
+        }
+        return undefined;
     }
 
     /**
