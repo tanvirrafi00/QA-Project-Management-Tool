@@ -44,6 +44,8 @@ export const PgSqlState = {
     UNDEFINED_TABLE: "42P01",
     UNDEFINED_COLUMN: "42703",
     STRING_DATA_RIGHT_TRUNCATION: "22001",
+    /** invalid_text_representation — e.g. a malformed UUID/value reaching a typed column. */
+    INVALID_TEXT_REPRESENTATION: "22P02",
 } as const;
 
 /** Connection-class SQLSTATE prefixes (08xxx connection, 57P0x shutdown). */
@@ -178,6 +180,10 @@ export function mapDatabaseError(err: unknown): AppError {
 
         case PgSqlState.STRING_DATA_RIGHT_TRUNCATION:
             return new ValidationError("One of the provided values is too long");
+
+        case PgSqlState.INVALID_TEXT_REPRESENTATION:
+            // Malformed input for a typed column (most often a non-UUID passed to a uuid column).
+            return new ValidationError("One of the provided values has an invalid format");
 
         default:
             // Connection-class errors → 503 (retryable by the client).

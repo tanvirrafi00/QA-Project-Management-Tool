@@ -28,9 +28,12 @@ import {
     nextStatuses,
 } from '../types';
 
-// Valid values for validation
+// Valid values for validation (single source — reused across create/update so the two paths agree).
 const VALID_LAYERS: BugLayer[] = ['Frontend', 'Backend', 'Integration', 'Mobile', 'Infrastructure'];
 const VALID_METHODS: InputMethod[] = ['description', 'structured', 'log'];
+const VALID_SEVERITIES: BugSeverity[] = ['Critical', 'High', 'Medium', 'Low'];
+const VALID_PRIORITIES: BugPriority[] = ['P1', 'P2', 'P3', 'P4'];
+const VALID_BUG_STATUSES: BugStatus[] = ['Open', 'Assigned', 'In Progress', 'Fixed', 'Ready For QA', 'Verified', 'Closed', 'Reopened'];
 
 /** Minimal shape of a multer memory-storage upload (avoids coupling to the Express.Multer namespace). */
 interface UploadedFile {
@@ -109,6 +112,15 @@ export const bugManagementController = {
             }
             if (!body.layer || !VALID_LAYERS.includes(body.layer)) {
                 return sendValidationError(res, { layer: 'Valid bug layer is required' });
+            }
+            if (body.severity && !VALID_SEVERITIES.includes(body.severity)) {
+                return sendValidationError(res, { severity: 'Invalid severity value' });
+            }
+            if (body.priority && !VALID_PRIORITIES.includes(body.priority)) {
+                return sendValidationError(res, { priority: 'Invalid priority value' });
+            }
+            if (body.status && !VALID_BUG_STATUSES.includes(body.status)) {
+                return sendValidationError(res, { status: 'Invalid status value' });
             }
 
             const input: SaveBugInput = {
@@ -333,16 +345,16 @@ export const bugManagementController = {
             const body = req.body;
 
             // Validate enum fields if provided
-            if (body.severity && !['Critical', 'High', 'Medium', 'Low'].includes(body.severity)) {
+            if (body.severity && !VALID_SEVERITIES.includes(body.severity)) {
                 return sendValidationError(res, { severity: 'Invalid severity value' });
             }
-            if (body.priority && !['P1', 'P2', 'P3', 'P4'].includes(body.priority)) {
+            if (body.priority && !VALID_PRIORITIES.includes(body.priority)) {
                 return sendValidationError(res, { priority: 'Invalid priority value' });
             }
-            if (body.status && !['Open', 'Assigned', 'In Progress', 'Fixed', 'Ready For QA', 'Verified', 'Closed', 'Reopened'].includes(body.status)) {
+            if (body.status && !VALID_BUG_STATUSES.includes(body.status)) {
                 return sendValidationError(res, { status: 'Invalid status value' });
             }
-            if (body.layer && !['Frontend', 'Backend', 'Integration', 'Mobile', 'Infrastructure'].includes(body.layer)) {
+            if (body.layer && !VALID_LAYERS.includes(body.layer)) {
                 return sendValidationError(res, { layer: 'Invalid layer value' });
             }
 
@@ -379,9 +391,12 @@ export const bugManagementController = {
             // ── Status workflow: reject invalid transitions (backend is the source of truth) ──
             if (body.status !== undefined && body.status !== existing.status) {
                 if (!isValidStatusTransition(existing.status, body.status as BugStatus)) {
+                    const transitionMsg = `"${existing.status}" → "${body.status}" is not a valid status transition.`;
+                    // Standard error envelope (message + errors) plus the allowed-next hint for the UI.
                     return res.status(400).json({
                         success: false,
-                        error: `"${existing.status}" → "${body.status}" is not a valid status transition.`,
+                        message: transitionMsg,
+                        errors: { status: [transitionMsg] },
                         allowedNext: nextStatuses(existing.status),
                     });
                 }
@@ -514,6 +529,15 @@ export const bugManagementController = {
             }
             if (!body.status) {
                 return sendValidationError(res, { status: 'Status is required' });
+            }
+            if (!VALID_SEVERITIES.includes(body.severity)) {
+                return sendValidationError(res, { severity: 'Invalid severity value' });
+            }
+            if (!VALID_PRIORITIES.includes(body.priority)) {
+                return sendValidationError(res, { priority: 'Invalid priority value' });
+            }
+            if (!VALID_BUG_STATUSES.includes(body.status)) {
+                return sendValidationError(res, { status: 'Invalid status value' });
             }
 
             const input = {

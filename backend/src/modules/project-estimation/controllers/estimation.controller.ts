@@ -21,13 +21,38 @@ import {
 const VALID_COMPLEXITY: ComplexityLevel[] = ['Low', 'Medium', 'High', 'Critical'];
 const VALID_RISK: RiskLevel[] = ['Low', 'Medium', 'High'];
 
-/** Map a service error message to an HTTP status (cleaner semantics, same envelope). */
+/**
+ * Map a service error message to an HTTP status (cleaner semantics, same envelope). The estimation
+ * service throws plain `Error`s, so we classify by message. State-machine violations (wrong source
+ * status for submit/resubmit/approve/…), "already exists", and ownership/role denials must map to
+ * 409/403 — not 500 — so clients can react correctly.
+ */
 function statusFor(message: string): number {
     if (/not found/i.test(message)) return 404;
-    if (/already exists|already assigned/i.test(message)) return 409;
-    if (/only edit your own|cannot/i.test(message)) return 403;
-    if (/required|invalid|negative|greater than/i.test(message)) return 400;
+    // State conflicts: duplicate, or an action disallowed in the current status.
+    if (/already exists|already assigned|current:|can be (submitted|resubmitted|approved|rejected|reopened|requested)|reviewable|requires the estimation/i.test(message)) {
+        return 409;
+    }
+    // Authorization: ownership or role requirements.
+    if (/only edit your own|only the estimate owner|only qa leads?|cannot/i.test(message)) return 403;
+    // Bad input.
+    if (/required|invalid|negative|greater than|must be|finite|not a (valid )?number/i.test(message)) return 400;
     return 500;
+}
+
+/**
+ * Validate an optional numeric body field: undefined/null pass through; anything that is not a finite
+ * number is rejected. Guards `estimation-math` from string values that would otherwise string-concatenate
+ * (e.g. `dailyCapacityHours:"8"` producing capacity "088" instead of 8).
+ */
+function requireFiniteNumber(body: Record<string, unknown>, field: string, res: Response): string | null {
+    const v = (body as any)[field];
+    if (v === undefined || v === null) return null;
+    if (typeof v !== 'number' || !Number.isFinite(v)) {
+        sendValidationError(res, { [field]: `${field} must be a finite number` });
+        return field;
+    }
+    return null;
 }
 
 function actorOf(req: Request): Actor | undefined {
@@ -133,6 +158,7 @@ export const estimationController = {
             if (!body.engineerId?.trim()) {
                 return sendValidationError(res, { engineerId: 'Engineer is required' });
             }
+            if (requireFiniteNumber(body, 'dailyCapacityHours', res)) return;
             const input: CreateAssignmentInput = {
                 moduleId: String(req.params.moduleId),
                 engineerId: body.engineerId,
@@ -178,6 +204,8 @@ export const estimationController = {
             if (body.riskLevel && !VALID_RISK.includes(body.riskLevel)) {
                 return sendValidationError(res, { riskLevel: 'Invalid risk level value' });
             }
+            if (requireFiniteNumber(body, 'testCaseCount', res)) return;
+            if (requireFiniteNumber(body, 'estimatedHours', res)) return;
             const input: CreateEstimationInput = {
                 assignmentId: body.assignmentId,
                 moduleId: String(req.params.moduleId),
@@ -221,6 +249,8 @@ export const estimationController = {
             if (body.riskLevel && !VALID_RISK.includes(body.riskLevel)) {
                 return sendValidationError(res, { riskLevel: 'Invalid risk level value' });
             }
+            if (requireFiniteNumber(body, 'testCaseCount', res)) return;
+            if (requireFiniteNumber(body, 'estimatedHours', res)) return;
             const updates: UpdateEstimationInput = {
                 ...(body.testCaseCount !== undefined && { testCaseCount: body.testCaseCount }),
                 ...(body.estimatedHours !== undefined && { estimatedHours: body.estimatedHours }),

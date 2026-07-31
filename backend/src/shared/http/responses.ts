@@ -2,11 +2,12 @@
  * HTTP response helpers — the standard API envelope and opt-in pagination.
  *
  * Envelope (Deliverable 4 §4):
- *   success: { success: true,  data, ...meta }
- *   error:   { success: false, error }
+ *   success: { success: true,  message, data, meta }
+ *   error:   { success: false, message, errors? }
  *
  * Pagination is OPT-IN: clients that send `?page` (and/or `?page_size`) get a page slice plus
- * `{ page, page_size, total }`; clients that send neither get the full array (backward compatible).
+ * `{ page, page_size, total }` (under `meta`); clients that send neither get the full array
+ * (backward compatible).
  *
  * Migration Roadmap Step 4.
  */

@@ -42,7 +42,10 @@ class MergeAgent {
 
         for (const tc of allCases) {
             const normalized = this.normalizeTestCase(tc, requirement.module, deduped.length);
-            const key = normalized.name.toLowerCase().replace(/\s+/g, ' ').trim();
+            // Dedup key includes TYPE so two legitimately distinct cases that happen to share a name
+            // across types (e.g. a functional "Verify login" and a negative "Verify login") are both
+            // kept instead of one being silently dropped.
+            const key = `${normalized.type || 'functional'}|${normalized.name.toLowerCase().replace(/\s+/g, ' ').trim()}`;
 
             if (!seen.has(key)) {
                 seen.add(key);

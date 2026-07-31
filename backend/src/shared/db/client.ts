@@ -387,15 +387,28 @@ export async function withRetry<T>(
 
     for (let attempt = 1; attempt <= config.maxAttempts; attempt++) {
         try {
-            // Wrap operation with timeout if specified
-            const result = config.operationTimeoutMs
-                ? await Promise.race([
-                    operation(),
-                    new Promise<never>((_, reject) =>
-                        setTimeout(() => reject(new Error(`Operation timeout after ${config.operationTimeoutMs}ms`)), config.operationTimeoutMs)
-                    )
-                ])
-                : await operation();
+            // Wrap operation with a timeout if specified. The timeout timer is cleared in `finally`
+            // so it does not keep the event loop alive (and block graceful shutdown) after the
+            // operation resolves/rejects first — the normal case on every successful call.
+            let result: T;
+            if (config.operationTimeoutMs) {
+                let timer: ReturnType<typeof setTimeout> | undefined;
+                try {
+                    result = await Promise.race([
+                        operation(),
+                        new Promise<never>((_, reject) => {
+                            timer = setTimeout(
+                                () => reject(new Error(`Operation timeout after ${config.operationTimeoutMs}ms`)),
+                                config.operationTimeoutMs,
+                            );
+                        }),
+                    ]);
+                } finally {
+                    if (timer) clearTimeout(timer);
+                }
+            } else {
+                result = await operation();
+            }
 
             // Success - log if retries were attempted
             if (attempt > 1) {

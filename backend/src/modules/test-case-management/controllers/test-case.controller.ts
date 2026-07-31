@@ -26,7 +26,13 @@ interface UploadedFile {
 
 const VALID_PRIORITIES: TestCasePriority[] = ['Critical', 'High', 'Medium', 'Low'];
 const VALID_STATUSES: TestCaseStatus[] = ['Not Executed', 'Passed', 'Failed', 'Blocked', 'Skipped'];
-const VALID_TYPES: TestCaseType[] = ['functional', 'negative', 'edge', 'security', 'boundary', 'scenario'];
+// Mirrors the full `TestCaseType` union (types/index.ts) — previously only 6 of the 15 values were
+// listed, so updating `type` to e.g. 'ui' was rejected even though it is a valid type.
+const VALID_TYPES: TestCaseType[] = [
+    'functional', 'negative', 'edge', 'security', 'boundary', 'scenario',
+    'ui', 'validation', 'api', 'permission', 'workflow', 'integration',
+    'data_integrity', 'performance', 'accessibility',
+];
 
 export const testCaseController = {
     /**
@@ -45,6 +51,15 @@ export const testCaseController = {
             }
             if (!body.module?.trim()) {
                 return sendValidationError(res, { module: 'Module is required' });
+            }
+            if (body.priority && !VALID_PRIORITIES.includes(body.priority)) {
+                return sendValidationError(res, { priority: 'Invalid priority value' });
+            }
+            if (body.type && !VALID_TYPES.includes(body.type)) {
+                return sendValidationError(res, { type: 'Invalid type value' });
+            }
+            if (body.testStatus && !VALID_STATUSES.includes(body.testStatus)) {
+                return sendValidationError(res, { testStatus: 'Invalid status value' });
             }
 
             const input: SaveTestCaseInput = {
@@ -187,6 +202,7 @@ export const testCaseController = {
                 ...(body.subModule !== undefined && { subModule: body.subModule }),
                 ...(body.name !== undefined && { name: body.name }),
                 ...(body.description !== undefined && { description: body.description }),
+                ...(body.type !== undefined && { type: body.type }),
                 ...(body.priority !== undefined && { priority: body.priority }),
                 ...(body.testStatus !== undefined && { testStatus: body.testStatus }),
                 ...(body.actualResult !== undefined && { actualResult: body.actualResult }),
@@ -494,6 +510,15 @@ export const testCaseController = {
             }
             if (!body.priority) {
                 return sendValidationError(res, { priority: 'Priority is required' });
+            }
+            if (!VALID_PRIORITIES.includes(body.priority)) {
+                return sendValidationError(res, { priority: 'Invalid priority value' });
+            }
+            if (body.type && !VALID_TYPES.includes(body.type)) {
+                return sendValidationError(res, { type: 'Invalid type value' });
+            }
+            if (body.testStatus && !VALID_STATUSES.includes(body.testStatus)) {
+                return sendValidationError(res, { testStatus: 'Invalid status value' });
             }
             if (!body.testSteps || !Array.isArray(body.testSteps) || body.testSteps.length === 0) {
                 return sendValidationError(res, { testSteps: 'Test steps are required' });

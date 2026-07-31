@@ -90,7 +90,18 @@ async function doFetch<T>(path: string, init?: RequestInit): Promise<ApiEnvelope
                 error: body.error || body.message || `Request failed (${res.status})`,
             };
         }
-        return (await res.json()) as ApiEnvelope<T>;
+        const body = (await res.json()) as ApiEnvelope<T> & { meta?: Record<string, unknown> };
+        // The backend nests passthrough fields (pagination `page`/`page_size`/`total`, plus `count`,
+        // `version`, `changes`) under `meta` per the standard envelope. Flatten them onto the top
+        // level here so this client's envelope type and helpers (which read top-level) work, and
+        // every consumer is fixed in one place.
+        if (body.meta) {
+            const merged = body as unknown as Record<string, unknown>;
+            for (const [k, v] of Object.entries(body.meta)) {
+                if (merged[k] === undefined) merged[k] = v;
+            }
+        }
+        return body;
     } catch (err) {
         return {
             success: false,

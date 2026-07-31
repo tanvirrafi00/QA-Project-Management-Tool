@@ -28,6 +28,12 @@ router.patch("/:id/reject", authorize("user:manage"), userController.reject);
 router.patch("/:id/suspend", authorize("user:manage"), userController.suspend);
 router.patch("/:id/activate", authorize("user:manage"), userController.activate);
 router.delete("/:id", authorize("user:manage"), userController.deactivate);
-router.post("/:id/assignments", authorize("project:assign"), userController.assignMember);
+// Project-scoped: a non-admin assigner must already be a member of the target project (the
+// `scopeResolver` makes the `authorize` middleware run its membership check via `isMemberOf`).
+router.post(
+    "/:id/assignments",
+    authorize("project:assign", (req) => req.body?.projectId),
+    userController.assignMember,
+);
 
 export default router;

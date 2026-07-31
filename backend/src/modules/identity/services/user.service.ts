@@ -17,6 +17,8 @@
 import { hashPassword, type AccountStatus, type UserRole } from "../../../shared/auth";
 import activityLogRepository from "../../../shared/db/repositories/activity-log.repository";
 import { ConflictError, NotFoundError, ValidationError } from "../../../shared/errors";
+import logger from "../../../shared/logger";
+import tokenRepository from "../repositories/refresh-token.repository";
 import userRepository, { type UserRow } from "../repositories/user.repository";
 import type {
     ApproveUserInput,
@@ -29,6 +31,16 @@ import type {
 
 /** Roles an admin may assign at approval time (Admin accounts are created out-of-band, not via approval). */
 const APPROVAL_TARGET_ROLES: ReadonlySet<UserRole> = new Set<UserRole>(["qa_lead", "qa_engineer"]);
+
+/** Runtime-validated role/status values (mirror the `user_role` / `account_status` DB enums). */
+const USER_ROLES: ReadonlySet<UserRole> = new Set<UserRole>(["admin", "qa_lead", "qa_engineer"]);
+const ACCOUNT_STATUSES: ReadonlySet<AccountStatus> = new Set<AccountStatus>([
+    "active",
+    "disabled",
+    "pending_approval",
+    "rejected",
+    "suspended",
+]);
 
 /**
  * Guard against locking the platform out: an active admin may only be suspended/deleted if at least one
@@ -72,6 +84,9 @@ function toPublicUser(u: UserRow): PublicUser {
 
 export const userService = {
     async create(input: CreateUserInput, actorId: string): Promise<PublicUser> {
+        if (!USER_ROLES.has(input.role)) {
+            throw new ValidationError(`role must be one of: ${[...USER_ROLES].join(", ")}`);
+        }
         const existing = await userRepository.findByEmail(input.email);
         if (existing) {
             throw new ConflictError(`A user with email "${input.email}" already exists`);
@@ -116,6 +131,13 @@ export const userService = {
     },
 
     async update(id: string, version: number, input: UpdateUserInput, actorId: string): Promise<PublicUser> {
+        if (input.role !== undefined && !USER_ROLES.has(input.role)) {
+            throw new ValidationError(`role must be one of: ${[...USER_ROLES].join(", ")}`);
+        }
+        if (input.status !== undefined && !ACCOUNT_STATUSES.has(input.status)) {
+            throw new ValidationError(`status must be one of: ${[...ACCOUNT_STATUSES].join(", ")}`);
+        }
+
         const patch: {
             name?: string;
             role?: UserRole;
@@ -128,10 +150,42 @@ export const userService = {
         if (input.status !== undefined) patch.status = input.status;
         if (input.password !== undefined) patch.passwordHash = await hashPassword(input.password);
 
+        // Last-admin guard: refuse to remove the only active administrator via a role downgrade or a
+        // non-active status. `deactivate`/`suspend` already guard this; `update` previously did not,
+        // so PATCHing the last admin to `{role:"qa_engineer"}` or `{status:"disabled"}` could lock the
+        // platform out. The `version` optimistic-lock check below covers concurrent modification.
+        const existing = await userRepository.findById(id);
+        if (!existing) throw new NotFoundError("User not found");
+        const demotingAdmin =
+            existing.role === "admin" &&
+            existing.status === "active" &&
+            ((patch.role !== undefined && patch.role !== "admin") ||
+                (patch.status !== undefined && patch.status !== "active"));
+        if (demotingAdmin) {
+            await assertNotLastAdmin(existing);
+        }
+
         const row = await userRepository.update(id, version, patch);
         if (!row) {
             throw new ConflictError("This user was modified by another request; refresh and try again");
         }
+
+        // Privilege/status reduction must invalidate outstanding sessions: the access token is self-
+        // describing, so a demoted or suspended user would otherwise keep their old (higher) role until
+        // the short access TTL expires. Revoke all refresh tokens, forcing re-login on the next refresh.
+        const reducesAccess =
+            demotingAdmin ||
+            patch.role !== undefined ||
+            (patch.status !== undefined && patch.status !== "active");
+        if (reducesAccess) {
+            await tokenRepository.revokeAllForUser(id).catch((err) => {
+                logger.warn("Failed to revoke sessions after user update", {
+                    userId: id,
+                    error: String(err),
+                });
+            });
+        }
+
         return toPublicUser(row);
     },
 
@@ -148,9 +202,19 @@ export const userService = {
         }
         await assertNotLastAdmin(row);
         await userRepository.deactivate(id);
+        // Invalidate all outstanding sessions for the removed user.
+        await tokenRepository.revokeAllForUser(id).catch((err) => {
+            logger.warn("Failed to revoke sessions after user deactivation", {
+                userId: id,
+                error: String(err),
+            });
+        });
     },
 
     async assignMember(userId: string, input: AssignmentInput, actorId: string): Promise<void> {
+        if (!USER_ROLES.has(input.role)) {
+            throw new ValidationError(`role must be one of: ${[...USER_ROLES].join(", ")}`);
+        }
         const row = await userRepository.findById(userId);
         if (!row) throw new NotFoundError("User not found");
         await userRepository.assignToProject(userId, input.projectId, input.role, actorId);
@@ -247,10 +311,15 @@ export const userService = {
         if (!updated) {
             throw new ConflictError("This user's status changed; refresh and try again");
         }
+        // A suspended user must not keep using an already-issued access token.
+        await tokenRepository.revokeAllForUser(id).catch((err) => {
+            logger.warn("Failed to revoke sessions after user suspension", {
+                userId: id,
+                error: String(err),
+            });
+        });
         return toPublicUser(updated);
     },
-
-    /** Reactivate a suspended user (they were already onboarded at approval time). Source: `suspended`. */
     async activate(id: string, actorId: string): Promise<PublicUser> {
         const existing = await userRepository.findById(id);
         if (!existing) throw new NotFoundError("User not found");

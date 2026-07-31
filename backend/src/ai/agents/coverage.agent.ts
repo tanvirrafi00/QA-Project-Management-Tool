@@ -66,13 +66,18 @@ class CoverageAgent {
             }
         }
 
-        // Check validation coverage
-        for (const validation of requirement.validations || []) {
-            const hasTest = testCases.some(tc =>
-                tc.type === 'negative' || tc.type === 'edge' || tc.type === 'boundary'
-            );
-            if (hasTest) {
-                covered.push(`Validation testing`);
+        // Check validation coverage — a single negative/edge/boundary case covers the validation
+        // category as a whole, so report it once (previously it was pushed once *per* validation,
+        // duplicating "Validation testing" N times). Validations with no such coverage are now gaps.
+        const hasValidationTests = testCases.some(
+            (tc) => tc.type === 'negative' || tc.type === 'edge' || tc.type === 'boundary',
+        );
+        const validationCount = requirement.validations?.length ?? 0;
+        if (validationCount > 0) {
+            if (hasValidationTests) {
+                covered.push('Validation testing');
+            } else {
+                missing.push(`${validationCount} validation rule(s) lack negative/edge/boundary coverage`);
             }
         }
 

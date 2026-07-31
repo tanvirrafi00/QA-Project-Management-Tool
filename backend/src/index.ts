@@ -16,7 +16,9 @@ import aiProviderManager from './ai/providers/provider.manager';
 import { ensureBootstrapAdmin } from './modules/identity/seed';
 import logger from './shared/logger';
 import { authenticate } from './middleware/auth';
+import { validateJwtConfig } from './shared/auth';
 import { errorResponse } from './shared/errors';
+import { sendError } from './shared/http/responses';
 import { isDatabaseConfigured, validateConnection, databaseConfig, closeDb } from './shared/db';
 import { validateDatabaseOnStartup } from './shared/db/startup-health';
 import { mapDatabaseError } from './shared/db/errors';
@@ -24,6 +26,10 @@ import { mapDatabaseError } from './shared/db/errors';
 const app = express();
 // Default 5001 to match the frontend (.env.local → NEXT_PUBLIC_API_URL=http://localhost:5001).
 const PORT = process.env.PORT || 5001;
+
+// Fail fast on insecure JWT configuration (missing/dev/default or shared access+refresh secrets).
+// Throws in production; warns otherwise. Must run after `dotenv/config` (imported first above).
+validateJwtConfig();
 
 // Middleware
 app.use(cors({
@@ -117,6 +123,13 @@ app.get('/api', (req, res) => {
       users: 'GET /api/users (admin)',
     },
   });
+});
+
+// 404 catch-all — unmatched routes return the standard JSON error envelope (not Express's default
+// HTML/text 404), keeping the response contract consistent for every path. Must be mounted after all
+// routes and before the error handler.
+app.use((req: express.Request, res: express.Response) => {
+  sendError(res, 404, `Route not found: ${req.method} ${req.path}`);
 });
 
 // Error handling middleware — maps typed AppError subclasses to status codes via `errorResponse`,

@@ -31,6 +31,17 @@ function toSessionUser(u: UserRow): SessionUser {
     };
 }
 
+/**
+ * Lazily-computed dummy Argon2 hash. Used so the login path always performs the password-hash work,
+ * even when the email matches no account — without it, a timing oracle could distinguish existing vs
+ * non-existing emails (argon2 only runs for known users). The value never matches a real password.
+ */
+let dummyHashPromise: Promise<string> | null = null;
+function getDummyHash(): Promise<string> {
+    if (!dummyHashPromise) dummyHashPromise = hashPassword("dummy-constant-value-do-not-match");
+    return dummyHashPromise;
+}
+
 export const authService = {
     async register(input: {
         email: string;
@@ -75,13 +86,17 @@ export const authService = {
 
     async login(input: LoginInput): Promise<{ user: SessionUser; tokens: AuthTokens }> {
         const user = await userRepository.findByEmail(input.email);
-        if (!user) throw new UnauthorizedError("Invalid email or password");
+        // Always perform the (expensive) password-hash verification — against a dummy hash when the
+        // email is unknown — so the response time is independent of whether the account exists.
+        const passwordOk = user
+            ? await verifyPassword(input.password, user.passwordHash)
+            : await verifyPassword(input.password, await getDummyHash());
+        if (!user || !passwordOk) {
+            throw new UnauthorizedError("Invalid email or password");
+        }
         if (user.status !== "active") {
             throw new ForbiddenError(loginDeniedMessage(user.status));
         }
-
-        const ok = await verifyPassword(input.password, user.passwordHash);
-        if (!ok) throw new UnauthorizedError("Invalid email or password");
 
         await userRepository.touchLastLogin(user.id);
         const sessionUser = toSessionUser(user);
@@ -118,7 +133,17 @@ export const authService = {
 
         const tokenHash = hashToken(refreshToken);
         const row = await tokenRepository.findActiveByHash(tokenHash);
-        if (!row || new Date(row.expiresAt).getTime() < Date.now()) {
+        if (!row) {
+            // Replay of an already-revoked token is a strong theft signal (an attacker rotated first).
+            // If this hash is known but revoked, burn the entire token family for the subject so the
+            // attacker's freshly-issued chain is invalidated too.
+            const known = await tokenRepository.findByHash(tokenHash);
+            if (known) {
+                await tokenRepository.revokeAllForUser(payload.sub);
+            }
+            throw new UnauthorizedError("Invalid or expired refresh token");
+        }
+        if (new Date(row.expiresAt).getTime() < Date.now()) {
             throw new UnauthorizedError("Invalid or expired refresh token");
         }
 

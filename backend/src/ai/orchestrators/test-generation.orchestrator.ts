@@ -27,7 +27,7 @@ import aiProviderManager from '../providers/provider.manager';
 import jsonParser from '../parsers/json-parser.service';
 import { PerformanceTimer, AI_CALL_LABEL } from '../../shared/performance/timing';
 import logger from '../../shared/logger';
-import { JobCancelledError } from '../../shared/errors';
+import { AIError, JobCancelledError } from '../../shared/errors';
 import { buildFunctionalFirstPrompt } from '../../prompts/test-generation/functional-first.prompt';
 import { buildSecondaryTypesPrompt } from '../../prompts/test-generation/secondary-types.prompt';
 import {
@@ -343,6 +343,21 @@ class TestGenerationOrchestrator {
             });
         }
 
+        // ── Total-generation guard (Phases 2–6) ──
+        // Every AI pass is resilient to per-call failure (Promise.allSettled → empty AgentOutput), and
+        // `requirementProcessor` also swallows AI errors. Without this guard, a *total* AI outage
+        // (every call rejected / returned nothing) would produce 0 cases, settle as a silent HTTP 200
+        // success, AND poison the result cache for the TTL. A successful generation always yields ≥1
+        // case (the functional floor is ≥2), so 0 cases means generation failed → surface a 503 and
+        // skip caching (the guard below also short-circuits `resultCache.set`).
+        if (finalCases.length === 0) {
+            throw new AIError(
+                'Test generation produced no test cases — all AI calls failed or returned empty. ' +
+                'Verify AI provider configuration (GLM_API_KEY / GEMINI_API_KEY) and retry.',
+                'orchestrator',
+            );
+        }
+
         // ── Coverage validation ──
         enterPhase('coverage');
         const coverage = await timer.track('coverage', () => coverageAgent.run(requirement, finalCases));
@@ -411,7 +426,8 @@ class TestGenerationOrchestrator {
 
         timer.measure('formatting', 'format-start');
         response.timings = timer.toTimings({ cacheHit: false });
-        resultCache.set(cacheKey, response);
+        // Only cache non-degenerate successes — never cache an empty result (would mask outages).
+        if (finalCases.length > 0) resultCache.set(cacheKey, response);
         logger.info(
             `🏁 DONE — ${finalCases.length} cases (${functionalFinalCount} functional + ${secondaryFinalCount} secondary), coverage ${coverage.score}%`,
             response.timings,

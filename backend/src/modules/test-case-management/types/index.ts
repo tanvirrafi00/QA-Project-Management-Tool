@@ -127,6 +127,7 @@ export interface UpdateTestCaseInput {
     subModule?: string;
     name?: string;
     description?: string;
+    type?: TestCaseType;
     priority?: TestCasePriority;
     testStatus?: TestCaseStatus;
     actualResult?: string;

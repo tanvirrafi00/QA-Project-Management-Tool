@@ -30,6 +30,20 @@ class RefreshTokenRepository {
         return row;
     }
 
+    /**
+     * Find a token by hash regardless of revocation state. Used by the refresh flow to detect a
+     * *replay* of an already-revoked token (a strong theft signal): if `findActiveByHash` returns
+     * nothing but this returns a revoked row, the whole token family is revoked.
+     */
+    async findByHash(tokenHash: string) {
+        const [row] = await db
+            .select()
+            .from(refreshTokens)
+            .where(eq(refreshTokens.tokenHash, tokenHash))
+            .limit(1);
+        return row;
+    }
+
     async revokeByHash(tokenHash: string): Promise<void> {
         await db
             .update(refreshTokens)

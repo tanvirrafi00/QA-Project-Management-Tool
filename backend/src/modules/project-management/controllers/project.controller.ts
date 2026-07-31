@@ -26,6 +26,33 @@ const VALID_TYPES: ProjectType[] = [
 
 const VALID_STATUSES: ProjectStatus[] = ['Active', 'Archived'];
 
+/**
+ * Project isolation (RBAC defense-in-depth). Admins see every project; a non-admin caller — only
+ * present when AUTH_ENABLED=true — may access only projects they are a member of. Returns `true` when
+ * access is allowed; otherwise sends a 403 and returns `false`. A no-op when auth is off (no user),
+ * so the default in-memory/open configuration is unchanged.
+ */
+async function ensureProjectAccess(req: Request, res: Response, projectId: string): Promise<boolean> {
+    const caller = req.user;
+    if (!caller || caller.role === 'admin') return true;
+    const ok = await userRepository.isMemberOf(caller.id, projectId);
+    if (!ok) {
+        sendError(res, 403, 'You do not have access to this project');
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Project IDs a non-admin caller may see. Returns `null` for admins / when auth is off (→ no filter,
+ * all projects); otherwise the caller's membership set, used to scope collection listings.
+ */
+async function visibleProjectIds(req: Request): Promise<Set<string> | null> {
+    const caller = req.user;
+    if (!caller || caller.role === 'admin') return null;
+    return new Set(await userRepository.listAccessibleProjectIds(caller.id));
+}
+
 export const projectController = {
     /**
      * POST /api/projects
@@ -81,7 +108,10 @@ export const projectController = {
             };
 
             const projects = await projectService.list(filter);
-            const { data, meta } = paginate(projects, req);
+            // Scope to the caller's projects for non-admins (defense-in-depth; no-op when auth is off).
+            const allowed = await visibleProjectIds(req);
+            const scoped = allowed ? projects.filter((p) => allowed.has(p.id)) : projects;
+            const { data, meta } = paginate(scoped, req);
             sendSuccess(res, data, meta);
         } catch (error: any) {
             sendError(res, 500, error.message);
@@ -105,10 +135,13 @@ export const projectController = {
      * GET /api/projects/active
      * Active projects for the global selector.
      */
-    async listActive(_req: Request, res: Response) {
+    async listActive(req: Request, res: Response) {
         try {
-            const projects = await projectService.listActive();
-            sendSuccess(res, projects);
+            let projects = await projectService.listActive();
+            // Scope to the caller's projects for non-admins (no-op when auth is off).
+            const allowed = await visibleProjectIds(req);
+            if (allowed) projects = projects.filter((p) => allowed.has(p.id));
+            sendSuccess(res, projects, { count: projects.length });
         } catch (error: any) {
             sendError(res, 500, error.message);
         }
@@ -124,6 +157,7 @@ export const projectController = {
             if (!project) {
                 return sendError(res, 404, 'Project not found');
             }
+            if (!(await ensureProjectAccess(req, res, project.id))) return;
             sendSuccess(res, project);
         } catch (error: any) {
             sendError(res, 500, error.message);
@@ -154,6 +188,10 @@ export const projectController = {
                 changedBy: req.user?.id ?? body.changedBy ?? 'QA Team',
             };
 
+            const existing = await projectService.getById(id);
+            if (!existing) return sendError(res, 404, 'Project not found');
+            if (!(await ensureProjectAccess(req, res, existing.id))) return;
+
             const result = await projectService.update(id, updates);
             logger.info(`PATCH /api/projects/:id - ${result.project.projectCode} updated (v${result.project.version})`);
 
@@ -177,8 +215,12 @@ export const projectController = {
      */
     async archiveProject(req: Request, res: Response) {
         try {
+            const id = String(req.params.id);
+            const existing = await projectService.getById(id);
+            if (!existing) return sendError(res, 404, 'Project not found');
+            if (!(await ensureProjectAccess(req, res, existing.id))) return;
             const project = await projectService.archive(
-                String(req.params.id),
+                id,
                 req.user?.id ?? req.body?.changedBy ?? 'QA Team'
             );
             sendSuccess(res, project, undefined, 'Project archived successfully');
@@ -194,8 +236,12 @@ export const projectController = {
      */
     async restoreProject(req: Request, res: Response) {
         try {
+            const id = String(req.params.id);
+            const existing = await projectService.getById(id);
+            if (!existing) return sendError(res, 404, 'Project not found');
+            if (!(await ensureProjectAccess(req, res, existing.id))) return;
             const project = await projectService.restore(
-                String(req.params.id),
+                id,
                 req.user?.id ?? req.body?.changedBy ?? 'QA Team'
             );
             sendSuccess(res, project, undefined, 'Project restored successfully');
@@ -211,7 +257,11 @@ export const projectController = {
      */
     async getDeleteCheck(req: Request, res: Response) {
         try {
-            const check = await projectService.getDeleteCheck(String(req.params.id));
+            const id = String(req.params.id);
+            const existing = await projectService.getById(id);
+            if (!existing) return sendError(res, 404, 'Project not found');
+            if (!(await ensureProjectAccess(req, res, existing.id))) return;
+            const check = await projectService.getDeleteCheck(id);
             sendSuccess(res, check);
         } catch (error: any) {
             const status = /not found/i.test(error.message) ? 404 : 500;
@@ -225,8 +275,12 @@ export const projectController = {
      */
     async deleteProject(req: Request, res: Response) {
         try {
+            const id = String(req.params.id);
+            const existing = await projectService.getById(id);
+            if (!existing) return sendError(res, 404, 'Project not found');
+            if (!(await ensureProjectAccess(req, res, existing.id))) return;
             const force = req.query.force === 'true';
-            const result = await projectService.delete(String(req.params.id), force);
+            const result = await projectService.delete(id, force);
 
             if (!result.deleted) {
                 // Distinguish "not found" from "blocked by data"
@@ -248,7 +302,11 @@ export const projectController = {
      */
     async getHistory(req: Request, res: Response) {
         try {
-            const history = await projectService.getHistory(String(req.params.id));
+            const id = String(req.params.id);
+            const existing = await projectService.getById(id);
+            if (!existing) return sendError(res, 404, 'Project not found');
+            if (!(await ensureProjectAccess(req, res, existing.id))) return;
+            const history = await projectService.getHistory(id);
             sendSuccess(res, history, { count: history.length });
         } catch (error: any) {
             sendError(res, 500, error.message);
