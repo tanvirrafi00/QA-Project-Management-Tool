@@ -1,61 +1,129 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/features/auth/AuthContext';
 import type { UserRole } from '@/features/auth/types';
 import {
-  LayoutDashboard,
   Calculator,
   ClipboardCheck,
-  SearchCheck,
-  Globe,
   Bug,
-  FlaskConical,
-  History,
-  Settings,
   Sparkles,
   BarChart3,
   ListChecks,
   FolderKanban,
   Users,
   Upload,
+  ChevronDown,
 } from 'lucide-react';
 
+type NavIcon = typeof Sparkles;
+
+interface NavItem {
+  name: string;
+  href: string;
+  icon: NavIcon;
+  /** When omitted the item is visible to everyone; otherwise filtered by role. */
+  roles?: UserRole[];
+}
+
+interface NavSection {
+  /** Clickable parent header — toggles the visibility of its items. */
+  label: string;
+  items: NavItem[];
+}
+
+/** localStorage key for the set of collapsed section labels. */
+const COLLAPSED_STORAGE_KEY = 'sidebar-collapsed-sections';
+
 /**
- * Role-aware navigation. Items without `roles` are visible to everyone; others are filtered by the
- * current user's role (see `docs/rbac-design.md` §1). Falls back to "show all" while the session is
- * loading or on unauthenticated render (the proxy gates the shell anyway).
+ * Role-aware navigation, grouped into collapsible sections. Items without `roles` are visible to
+ * everyone; others are filtered by the current user's role (see `docs/rbac-design.md` §1). A section
+ * is only rendered when it has at least one visible item. Falls back to "show all" while the session
+ * is loading or on unauthenticated render (the proxy gates the shell anyway).
+ *
+ * Each section header is clickable: it expands/collapses its items (state persisted to localStorage).
+ * The section containing the active route is always kept expanded so the active item stays visible.
+ *
+ * Hidden modules (kept out of the menu so direct navigation still works via their routes):
+ *   Dashboard, Gap Analysis, API Tests, Test Data, History, Settings.
  */
-const navigationItems: { name: string; href: string; icon: typeof LayoutDashboard; roles?: UserRole[]; hidden?: boolean }[] = [
-  // Hidden modules (kept in config so routes still work for direct navigation; removed from the menu):
-  //   Dashboard, Gap Analysis, API Tests, Test Data, History, Settings
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard, hidden: true },
-  { name: 'User Management', href: '/admin/users', icon: Users, roles: ['admin'] },
-  { name: 'Project Management', href: '/projects', icon: FolderKanban, roles: ['admin', 'qa_lead'] },
-  { name: 'Project Estimation', href: '/project-estimation', icon: Calculator },
-  { name: 'Test Cases', href: '/test-cases', icon: ClipboardCheck },
-  { name: 'Test Management', href: '/test-management', icon: ListChecks },
-  { name: 'Import Test Cases', href: '/test-case-import', icon: Upload },
-  { name: 'Gap Analysis', href: '/gap-analysis', icon: SearchCheck, roles: ['admin', 'qa_lead'], hidden: true },
-  { name: 'API Tests', href: '/api-tests', icon: Globe, roles: ['admin', 'qa_lead'], hidden: true },
-  { name: 'Bug Generator', href: '/bug-generator', icon: Bug },
-  { name: 'Bug Dashboard', href: '/bug-dashboard', icon: BarChart3 },
-  { name: 'Import Bugs', href: '/bug-import', icon: Upload },
-  { name: 'Test Data', href: '/test-data', icon: FlaskConical, roles: ['admin'], hidden: true },
-  { name: 'History', href: '/history', icon: History, roles: ['admin'], hidden: true },
-  { name: 'Settings', href: '/settings', icon: Settings, roles: ['admin'], hidden: true },
+const navigationSections: NavSection[] = [
+  {
+    label: 'Projects',
+    items: [
+      { name: 'Project Management', href: '/projects', icon: FolderKanban, roles: ['admin', 'qa_lead'] },
+      { name: 'Project Estimation', href: '/project-estimation', icon: Calculator },
+    ],
+  },
+  {
+    label: 'Testing',
+    items: [
+      { name: 'Test Case Generator', href: '/test-cases', icon: ClipboardCheck },
+      { name: 'Import Test Cases', href: '/test-case-import', icon: Upload },
+      { name: 'Test Management', href: '/test-management', icon: ListChecks },
+    ],
+  },
+  {
+    label: 'Bugs',
+    items: [
+      { name: 'Bug Generator', href: '/bug-generator', icon: Bug },
+      { name: 'Import Bugs', href: '/bug-import', icon: Upload },
+      { name: 'Bug Dashboard', href: '/bug-dashboard', icon: BarChart3 },
+    ],
+  },
+  {
+    label: 'Administration',
+    items: [
+      { name: 'User Management', href: '/admin/users', icon: Users, roles: ['admin'] },
+    ],
+  },
 ];
+
+function isItemActive(pathname: string, href: string) {
+  return pathname === href || (href !== '/' && pathname.startsWith(`${href}/`));
+}
 
 export function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
   const role = user?.role;
 
-  const items = navigationItems.filter(
-    (item) => !item.hidden && (!item.roles || !role || item.roles.includes(role)),
-  );
+  const isVisible = (item: NavItem) => !item.roles || !role || item.roles.includes(role);
+
+  // Pre-filter items per section and drop sections that end up empty for this role.
+  const sections = navigationSections
+    .map((section) => ({ ...section, items: section.items.filter(isVisible) }))
+    .filter((section) => section.items.length > 0);
+
+  // Collapsed state — initialized empty (avoids SSR hydration mismatch), then hydrated from
+  // localStorage on mount.
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(COLLAPSED_STORAGE_KEY);
+      if (stored) setCollapsed(new Set(JSON.parse(stored) as string[]));
+    } catch {
+      /* ignore malformed storage */
+    }
+  }, []);
+
+  const toggleSection = (label: string) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      try {
+        window.localStorage.setItem(COLLAPSED_STORAGE_KEY, JSON.stringify([...next]));
+      } catch {
+        /* storage unavailable — keep in-memory only */
+      }
+      return next;
+    });
+  };
 
   return (
     <aside className="w-[280px] bg-white flex flex-col border-r border-[#E2E8F0] flex-shrink-0 overflow-hidden">
@@ -69,33 +137,76 @@ export function Sidebar() {
         </div>
       </div>
 
-      {/* Navigation - Scrollable */}
-      <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-        {items.map((item) => {
-          const Icon = item.icon;
-          const isActive =
-            pathname === item.href ||
-            (item.href !== '/' && pathname.startsWith(`${item.href}/`));
+      {/* Navigation - Scrollable, grouped into collapsible sections */}
+      <nav className="flex-1 px-4 py-3 overflow-y-auto">
+        {sections.map((section, sectionIndex) => {
+          // Keep the active section expanded so the active item is always visible.
+          const containsActive = section.items.some((item) => isItemActive(pathname, item.href));
+          const isCollapsed = collapsed.has(section.label) && !containsActive;
 
           return (
-            <Link
-              key={item.name}
-              href={item.href}
-              prefetch={false}
-              className={cn(
-                'group flex items-center gap-3 px-3 h-10 rounded-xl text-sm font-medium transition-all duration-200 relative',
-                isActive
-                  ? 'text-[#1E293B] bg-[#E0F2FE] border border-[#06B6D4]/20'
-                  : 'text-[#64748B] hover:text-[#1E293B] hover:bg-[#F8FAFC]'
-              )}
-            >
-              {/* Active indicator bar */}
-              {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-5 rounded-r-full bg-[#06B6D4]" />
-              )}
-              <Icon className={cn("w-4 h-4 flex-shrink-0 transition-colors", isActive ? "text-[#06B6D4]" : "text-[#64748B] group-hover:text-[#1E293B]")} />
-              <span className="truncate">{item.name}</span>
-            </Link>
+            <div key={section.label} className={cn(sectionIndex === 0 ? 'mt-1' : 'mt-6')}>
+              {/* Clickable section header */}
+              <button
+                type="button"
+                onClick={() => toggleSection(section.label)}
+                aria-expanded={!isCollapsed}
+                className="group w-full flex items-center justify-between px-3 pb-2 rounded-lg transition-colors hover:bg-[#F8FAFC] cursor-pointer"
+              >
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] group-hover:text-[#64748B] transition-colors">
+                  {section.label}
+                </span>
+                <ChevronDown
+                  className={cn(
+                    'w-3.5 h-3.5 text-[#94A3B8] transition-transform duration-200',
+                    isCollapsed && '-rotate-90',
+                  )}
+                />
+              </button>
+
+              {/* Collapsible items — grid-rows trick for a smooth height animation */}
+              <div
+                className={cn(
+                  'grid transition-all duration-200 ease-in-out',
+                  isCollapsed ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100',
+                )}
+              >
+                <div className="overflow-hidden">
+                  <div className="space-y-1">
+                    {section.items.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = isItemActive(pathname, item.href);
+
+                      return (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          prefetch={false}
+                          className={cn(
+                            'group flex items-center gap-3 px-3 h-10 rounded-xl text-sm font-medium transition-all duration-200 relative',
+                            isActive
+                              ? 'text-[#1E293B] bg-[#E0F2FE] border border-[#06B6D4]/20'
+                              : 'text-[#64748B] hover:text-[#1E293B] hover:bg-[#F8FAFC]',
+                          )}
+                        >
+                          {/* Active indicator bar */}
+                          {isActive && (
+                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-5 rounded-r-full bg-[#06B6D4]" />
+                          )}
+                          <Icon
+                            className={cn(
+                              'w-4 h-4 flex-shrink-0 transition-colors',
+                              isActive ? 'text-[#06B6D4]' : 'text-[#64748B] group-hover:text-[#1E293B]',
+                            )}
+                          />
+                          <span className="truncate">{item.name}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
           );
         })}
       </nav>
