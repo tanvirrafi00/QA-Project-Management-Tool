@@ -56,8 +56,8 @@ export function PageContainer({ children, size = 'lg', className, style }: PageC
   const sizes = {
     sm: 'max-w-4xl',
     md: 'max-w-5xl',
-    lg: 'max-w-6xl',
-    full: 'max-w-7xl',
+    lg: 'max-w-7xl',
+    full: 'max-w-full',
   };
 
   return (
@@ -90,9 +90,9 @@ interface GridProps {
 export function Grid({ children, cols = 2, gap = 'lg', className }: GridProps) {
   const colClasses = {
     1: 'grid-cols-1',
-    2: 'grid-cols-1 md:grid-cols-2',
-    3: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
-    4: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4',
+    2: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-2',
+    3: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3',
+    4: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4',
   };
 
   const gapClasses = {

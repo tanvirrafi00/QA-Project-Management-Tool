@@ -11,12 +11,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       <input
         ref={ref}
         className={cn(
-          // Base styles
-          'h-12 w-full px-4 bg-white border-2 border-[#E2E8F0] rounded-xl text-base text-[#0F172A] placeholder:text-[#94A3B8]',
+          // Base styles - consistent with form styling
+          'w-full h-10 px-3 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] text-sm text-[#1E293B] transition-all',
           // Focus state
-          'focus:outline-none focus:border-[#06B6D4] focus:ring-4 focus:ring-[#06B6D4]/10 transition-all duration-200',
+          'focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#06B6D4]/30 focus:border-[#06B6D4]',
           // Error state
-          error && 'border-[#EF4444]/50 focus:border-[#EF4444] focus:ring-[#EF4444]/10',
+          error && 'border-[#EF4444] focus:border-[#EF4444] focus:ring-[#EF4444]/30',
           className
         )}
         {...props}
@@ -37,12 +37,12 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
       <textarea
         ref={ref}
         className={cn(
-          // Base styles
-          'w-full p-4 min-h-[120px] bg-white border-2 border-[#E2E8F0] rounded-xl text-base text-[#0F172A] placeholder:text-[#94A3B8]',
+          // Base styles - consistent with form styling
+          'w-full p-3 min-h-[100px] bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-sm text-[#1E293B] transition-all resize-none',
           // Focus state
-          'focus:outline-none focus:border-[#06B6D4] focus:ring-4 focus:ring-[#06B6D4]/10 transition-all duration-200 resize-none leading-relaxed',
+          'focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#06B6D4]/30 focus:border-[#06B6D4]',
           // Error state
-          error && 'border-[#EF4444]/50 focus:border-[#EF4444] focus:ring-[#EF4444]/10',
+          error && 'border-[#EF4444] focus:border-[#EF4444] focus:ring-[#EF4444]/30',
           className
         )}
         style={style}
@@ -63,11 +63,11 @@ export const Label = forwardRef<HTMLLabelElement, LabelProps>(
     return (
       <label
         ref={ref}
-        className={cn('text-sm font-semibold text-[#0F172A] mb-3 block', className)}
+        className={cn('block text-xs font-medium text-[#64748B] mb-1.5', className)}
         {...props}
       >
         {children}
-        {required && <span className="text-red-400 ml-1">*</span>}
+        {required && <span className="text-[#EF4444]">*</span>}
       </label>
     );
   }

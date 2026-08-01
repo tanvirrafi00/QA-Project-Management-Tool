@@ -35,11 +35,11 @@ export default function HistoryPage() {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'test-cases': return { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/15' };
-      case 'gap-analysis': return { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/15' };
-      case 'api-tests': return { bg: 'bg-purple-500/10', text: 'text-purple-400', border: 'border-purple-500/15' };
-      case 'bug-reports': return { bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/15' };
-      default: return { bg: 'bg-background-elevated/40', text: 'text-text-muted', border: 'border-border-default' };
+      case 'test-cases': return { bg: 'bg-[#EFF6FF]', text: 'text-[#3B82F6]', border: 'border-[#BFDBFE]' };
+      case 'gap-analysis': return { bg: 'bg-[#FFFBEB]', text: 'text-[#F59E0B]', border: 'border-[#FDE68A]' };
+      case 'api-tests': return { bg: 'bg-[#F5F3FF]', text: 'text-[#8B5CF6]', border: 'border-[#DDD6FE]' };
+      case 'bug-reports': return { bg: 'bg-[#FEF2F2]', text: 'text-[#EF4444]', border: 'border-[#FECACA]' };
+      default: return { bg: 'bg-[#F1F5F9]', text: 'text-[#64748B]', border: 'border-[#E2E8F0]' };
     }
   };
 
@@ -56,19 +56,15 @@ export default function HistoryPage() {
   return (
     <AppShell>
       <PageContainer>
-        {/* ========== 1. HEADER & NAVIGATION SPACING ========== */}
-        <div className="mb-12">
-          {/* Clear vertical gap between title and subtitle */}
-          <h1 className="text-[26px] font-semibold text-[#0F172A] mb-3">
-            Generation History
-          </h1>
-          <p className="text-[15px] text-[#64748B]">
-            View and manage your past AI generations
-          </p>
-        </div>
+        <div className="space-y-6">
+          {/* Header */}
+          <div>
+            <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight">Generation History</h1>
+            <p className="text-sm text-[#64748B] mt-1">View and manage your past AI generations</p>
+          </div>
 
-        <div className="mb-10">
-          <div className="flex flex-wrap items-center gap-4">
+          {/* Filter Tabs */}
+          <div className="flex flex-wrap items-center gap-2">
             {[
               { id: 'all', label: 'All' },
               { id: 'test-cases', label: 'Test Cases' },
@@ -81,11 +77,9 @@ export default function HistoryPage() {
                 <button
                   key={tab.id}
                   onClick={() => setFilter(tab.id as any)}
-                  /* Elongated pill shape with generous padding */
-                  className={`px-6 py-2.5 rounded-xl text-[14px] font-medium transition-all duration-200 border ${isActive
-                      /* Active cyan tab styling */
-                      ? 'bg-[#06B6D4] border-[#06B6D4] text-white shadow-md shadow-cyan-500/25'
-                      : 'bg-transparent border-transparent text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9]'
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors border ${isActive
+                    ? 'bg-[#06B6D4] border-[#06B6D4] text-white shadow-sm'
+                    : 'bg-white border-[#E2E8F0] text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#0F172A]'
                     }`}
                 >
                   {tab.label}
@@ -93,92 +87,81 @@ export default function HistoryPage() {
               );
             })}
           </div>
-        </div>
 
-        {filteredItems.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-[#E2E8F0]">
-            <div className="p-12">
-              {filter === 'all' ? (
-                <EmptyReports />
-              ) : (
-                <EmptyState
-                  icon={Clock}
-                  title={`No ${getTypeLabel(filter)} found`}
-                  description={`No generations found for the "${getTypeLabel(filter)}" filter. Try a different filter or generate new content.`}
-                />
-              )}
+          {filteredItems.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-[#E2E8F0]">
+              <div className="p-12">
+                {filter === 'all' ? (
+                  <EmptyReports />
+                ) : (
+                  <EmptyState
+                    icon={Clock}
+                    title={`No ${getTypeLabel(filter)} found`}
+                    description={`No generations found for the "${getTypeLabel(filter)}" filter. Try a different filter or generate new content.`}
+                  />
+                )}
+              </div>
             </div>
-          </div>
-        ) : (
-          /* Individual card containers with vertical gaps */
-          <div className="space-y-5">
-            {filteredItems.map((item) => {
-              const Icon = getTypeIcon(item.type);
-              const colors = getTypeColor(item.type);
+          ) : (
+            <div className="space-y-4">
+              {filteredItems.map((item) => {
+                const Icon = getTypeIcon(item.type);
+                const colors = getTypeColor(item.type);
 
-              return (
-                <div
-                  key={item.id}
-                  onMouseEnter={() => setHoveredItem(item.id)}
-                  onMouseLeave={() => setHoveredItem(null)}
-                  className={`group glass-panel rounded-xl transition-all duration-300 ${hoveredItem === item.id
-                      ? 'border-primary/40 shadow-lg shadow-cyan-500/10 scale-[1.005]'
-                      : 'border-border-default'
-                    }`}
-                  /* Increased internal padding for breathing room */
-                  style={{ padding: '24px 20px' }}
-                >
-                  <div className="flex items-start gap-6">
-                    {/* Icon - Aligned to grid with header text */}
-                    <div className={`w-14 h-14 rounded-xl ${colors.bg} ${colors.border} border flex items-center justify-center flex-shrink-0`}>
-                      <Icon className={`w-7 h-7 ${colors.text}`} />
-                    </div>
+                return (
+                  <div
+                    key={item.id}
+                    onMouseEnter={() => setHoveredItem(item.id)}
+                    onMouseLeave={() => setHoveredItem(null)}
+                    className={`bg-white rounded-2xl border p-5 transition-all ${hoveredItem === item.id
+                      ? 'border-[#06B6D4]/40 shadow-lg shadow-cyan-500/5'
+                      : 'border-[#E2E8F0]'
+                      }`}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className={`w-12 h-12 rounded-xl ${colors.bg} ${colors.border} border flex items-center justify-center flex-shrink-0`}>
+                        <Icon className={`w-6 h-6 ${colors.text}`} />
+                      </div>
 
-                    {/* Content */}
-                    <div className="flex-1 min-w-0 pt-0.5">
-                      {/* Title on its own line - tag moved below */}
-                      <h3 className="text-[15px] font-semibold text-[#0F172A] mb-1">
-                        {item.title}
-                      </h3>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-semibold text-[#0F172A] mb-1">
+                          {item.title}
+                        </h3>
 
-                      {/* Description - brighter grey for readability */}
-                      <p className="text-[14px] text-[#64748B] mb-3 leading-relaxed">
-                        {item.description}
-                      </p>
+                        <p className="text-sm text-[#64748B] mb-3 leading-relaxed">
+                          {item.description}
+                        </p>
 
-                      {/* Metadata - tag positioned below title */}
-                      <div className="flex items-center gap-4">
-                        {/* Brighter timestamp text */}
-                        <span className="text-[13px] text-[#94A3B8]">{item.timestamp}</span>
-                        {/* Clean badge with proper spacing */}
-                        <span className={`px-3 py-1 rounded-md ${colors.bg} ${colors.text} text-[13px] font-medium border ${colors.border}`}>
-                          {getTypeLabel(item.type)}
-                        </span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-[#94A3B8]">{item.timestamp}</span>
+                          <span className={`px-2.5 py-0.5 rounded-md ${colors.bg} ${colors.text} text-xs font-medium border ${colors.border}`}>
+                            {getTypeLabel(item.type)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className={`flex items-center gap-2 flex-shrink-0 transition-opacity ${hoveredItem === item.id ? 'opacity-100' : 'opacity-0'
+                        }`}>
+                        <button
+                          className="p-2 rounded-lg text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9] transition-colors"
+                          title="Download"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                        <button
+                          className="p-2 rounded-lg text-[#64748B] hover:text-[#EF4444] hover:bg-[#FEF2F2] transition-colors"
+                          title="Delete"
+                        >
+                          <Trash className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
-
-                    {/* Actions - Show on Hover */}
-                    <div className={`flex items-center gap-2 flex-shrink-0 transition-opacity duration-200 pt-1 ${hoveredItem === item.id ? 'opacity-100' : 'opacity-0'
-                      }`}>
-                      <button
-                        className="p-2.5 rounded-lg text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9] transition-colors"
-                        title="Download"
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
-                      <button
-                        className="p-2.5 rounded-lg text-[#64748B] hover:text-red-400 hover:bg-[#FEF2F2] transition-colors"
-                        title="Delete"
-                      >
-                        <Trash className="w-4 h-4" />
-                      </button>
-                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </div>
       </PageContainer>
     </AppShell>
   );

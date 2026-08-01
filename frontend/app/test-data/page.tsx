@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { AppShell, PageContainer, SplitPane, Panel } from '@/components/layout';
 import { SectionHeader, Button, Label, Input } from '@/components/core';
 import { CustomSelect } from '@/components/ui/CustomSelect';
-import { Database, Download, Copy, Check, Table, Hash, FileJson } from 'lucide-react';
+import { Database, Download, Copy, Check, Table, Hash, FileJson, Loader2 } from 'lucide-react';
 import { ChevronDown, ChevronRight, Sparkles } from 'lucide-react';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 export default function TestDataPage() {
   const [dataType, setDataType] = useState('');
@@ -173,36 +174,14 @@ export default function TestDataPage() {
 /* ─── Loading State ─── */
 function DataLoadingState() {
   return (
-    <div
-      className="flex items-center justify-center animate-fade-in"
-      style={{
-        background: 'var(--background-primary)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-xl)',
-        minHeight: '550px',
-        padding: 'var(--spacing-8)',
-      }}
-    >
-      <div className="flex flex-col items-center justify-center text-center">
-        <div style={{ position: 'relative', marginBottom: 'var(--spacing-8)' }}>
-          <div
-            style={{
-              width: '64px',
-              height: '64px',
-              borderRadius: '50%',
-              border: '4px solid var(--border-subtle)',
-              borderTop: '4px solid var(--color-success)',
-              animation: 'spin 1s linear infinite',
-            }}
-          />
-        </div>
-        <p className="text-body-lg font-semibold mb-2" style={{ color: 'var(--text-primary)', letterSpacing: '-0.025em' }}>
-          Generating test data...
-        </p>
-        <p className="text-body-md" style={{ color: 'var(--text-secondary)' }}>
-          Creating realistic records
-        </p>
-      </div>
+    <div className="bg-white border border-[#E2E8F0] rounded-2xl min-h-[550px] flex flex-col items-center justify-center text-center p-8">
+      <Loader2 className="w-10 h-10 text-[#06B6D4] animate-spin mb-4" />
+      <p className="text-base font-semibold text-[#0F172A] mb-1.5">
+        Generating test data...
+      </p>
+      <p className="text-sm text-[#64748B]">
+        Creating realistic records
+      </p>
     </div>
   );
 }
@@ -210,38 +189,12 @@ function DataLoadingState() {
 /* ─── Empty State ─── */
 function DataEmptyState() {
   return (
-    <div
-      className="flex items-center justify-center animate-fade-in"
-      style={{
-        background: 'var(--background-primary)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-xl)',
-        minHeight: '550px',
-        padding: 'var(--spacing-8)',
-      }}
-    >
-      <div className="flex flex-col items-center text-center" style={{ maxWidth: '400px', gap: 'var(--spacing-5)' }}>
-        <div
-          className="flex items-center justify-center"
-          style={{
-            width: '80px',
-            height: '80px',
-            borderRadius: 'var(--radius-lg)',
-            background: 'linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%)',
-            marginBottom: 'var(--spacing-2)',
-          }}
-        >
-          <Database style={{ width: '40px', height: '40px', color: 'var(--color-success)' }} />
-        </div>
-        <div>
-          <h3 className="text-display-lg font-semibold mb-2" style={{ color: 'var(--text-primary)', letterSpacing: '-0.025em' }}>
-            No Data Generated Yet
-          </h3>
-          <p className="text-body-md" style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-            Select a data type and generate realistic test data for your scenarios
-          </p>
-        </div>
-      </div>
+    <div className="bg-white border border-[#E2E8F0] rounded-2xl min-h-[550px]">
+      <EmptyState
+        icon={Database}
+        title="No Data Generated Yet"
+        description="Select a data type and generate realistic test data for your scenarios"
+      />
     </div>
   );
 }

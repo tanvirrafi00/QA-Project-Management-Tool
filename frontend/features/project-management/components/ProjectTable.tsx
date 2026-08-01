@@ -88,14 +88,14 @@ export function ProjectTable({
                 <table className="w-full">
                     <thead>
                         <tr className="bg-[#F8FAFC] border-b border-[#E2E8F0]">
-                            <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider">Project</th>
-                            <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider">Code</th>
-                            <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider">Type</th>
-                            <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider">Status</th>
-                            <th className="text-center px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider">Bugs</th>
-                            <th className="text-center px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider">Test Cases</th>
-                            <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider">Created</th>
-                            <th className="text-center px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider">Actions</th>
+                            <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider whitespace-nowrap">Project</th>
+                            <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider whitespace-nowrap">Code</th>
+                            <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider whitespace-nowrap">Type</th>
+                            <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider whitespace-nowrap">Status</th>
+                            <th className="text-center px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider whitespace-nowrap">Bugs</th>
+                            <th className="text-center px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider whitespace-nowrap">Test Cases</th>
+                            <th className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider whitespace-nowrap">Created</th>
+                            <th className="text-center px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider whitespace-nowrap">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -108,11 +108,11 @@ export function ProjectTable({
                                     onClick={() => onView(project)}
                                 >
                                     <td className="px-4 py-3">
-                                        <div className="text-sm font-semibold text-[#1E293B] truncate max-w-[260px]" title={project.projectName}>
+                                        <div className="text-sm font-semibold text-[#1E293B] truncate max-w-[200px]" title={project.projectName}>
                                             {project.projectName}
                                         </div>
                                         {project.description && (
-                                            <div className="text-xs text-[#94A3B8] truncate max-w-[260px]" title={project.description}>
+                                            <div className="text-xs text-[#94A3B8] truncate max-w-[200px]" title={project.description}>
                                                 {project.description}
                                             </div>
                                         )}
@@ -178,10 +178,11 @@ function IconAction({
         <button
             type="button"
             title={title}
+            aria-label={title}
             onClick={onClick}
-            className={`w-7 h-7 inline-flex items-center justify-center rounded-lg transition-colors ${danger
-                    ? 'text-[#94A3B8] hover:text-[#DC2626] hover:bg-[#FEF2F2]'
-                    : 'text-[#94A3B8] hover:text-[#06B6D4] hover:bg-[#ECFEFF]'
+            className={`w-7 h-7 inline-flex items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06B6D4]/40 ${danger
+                ? 'text-[#94A3B8] hover:text-[#DC2626] hover:bg-[#FEF2F2]'
+                : 'text-[#94A3B8] hover:text-[#06B6D4] hover:bg-[#ECFEFF]'
                 }`}
         >
             {children}

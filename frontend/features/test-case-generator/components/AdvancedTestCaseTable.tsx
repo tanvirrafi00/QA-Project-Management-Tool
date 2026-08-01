@@ -89,7 +89,7 @@ const fmtDate = (v?: string | null) => {
 export const TEST_CASE_COLUMNS: ColumnDef[] = [
     { key: 'module', label: 'Module', width: 140, render: (tc) => tc.module || 'General' },
     { key: 'id', label: 'TC ID', width: 110, render: (tc) => <span className="font-mono text-[#06B6D4] font-medium">{tcId(tc)}</span> },
-    { key: 'name', label: 'TC Name', width: 280, render: (tc) => <span className="font-medium text-[#0F172A]">{tcName(tc)}</span> },
+    { key: 'name', label: 'TC Name', width: 320, render: (tc) => <span className="font-medium text-[#0F172A] truncate" title={tcName(tc)}>{tcName(tc)}</span> },
     {
         key: 'priority', label: 'Priority', width: 110,
         render: (tc) => <Badge text={tc.priority || 'Medium'} className={PRIORITY_STYLE[tc.priority || ''] ?? 'bg-[#F1F5F9] text-[#64748B]'} />,
@@ -245,7 +245,7 @@ export function AdvancedTestCaseTable<T extends TestCaseRow>({
             {/* Table — sticky header + horizontal scroll */}
             <div className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="border-collapse" style={{ minWidth: `${totalWidth}px` }}>
+                    <table className="border-collapse" style={{ minWidth: `${Math.min(totalWidth, 1400)}px`, maxWidth: '100%' }}>
                         <thead>
                             <tr className="bg-[#F8FAFC]">
                                 {visibleColumns.map((col) => {

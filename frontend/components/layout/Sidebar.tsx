@@ -126,7 +126,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-[280px] bg-white flex flex-col border-r border-[#E2E8F0] flex-shrink-0 overflow-hidden">
+    <aside aria-label="Main navigation" className="w-[280px] bg-white flex flex-col border-r border-[#E2E8F0] flex-shrink-0 overflow-hidden">
       {/* Logo */}
       <div className="h-16 flex items-center px-5 flex-shrink-0 border-b border-[#E2E8F0]">
         <div className="flex items-center gap-3">
@@ -138,7 +138,7 @@ export function Sidebar() {
       </div>
 
       {/* Navigation - Scrollable, grouped into collapsible sections */}
-      <nav className="flex-1 px-4 py-3 overflow-y-auto">
+      <nav aria-label="Section navigation" className="flex-1 px-4 py-3 overflow-y-auto">
         {sections.map((section, sectionIndex) => {
           // Keep the active section expanded so the active item is always visible.
           const containsActive = section.items.some((item) => isItemActive(pathname, item.href));
@@ -151,7 +151,7 @@ export function Sidebar() {
                 type="button"
                 onClick={() => toggleSection(section.label)}
                 aria-expanded={!isCollapsed}
-                className="group w-full flex items-center justify-between px-3 pb-2 rounded-lg transition-colors hover:bg-[#F8FAFC] cursor-pointer"
+                className="group w-full flex items-center justify-between px-3 pb-2 rounded-lg transition-colors hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06B6D4]/40 cursor-pointer"
               >
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] group-hover:text-[#64748B] transition-colors">
                   {section.label}
@@ -182,8 +182,9 @@ export function Sidebar() {
                           key={item.name}
                           href={item.href}
                           prefetch={false}
+                          aria-current={isActive ? 'page' : undefined}
                           className={cn(
-                            'group flex items-center gap-3 px-3 h-10 rounded-xl text-sm font-medium transition-all duration-200 relative',
+                            'group flex items-center gap-3 px-3 h-10 rounded-xl text-sm font-medium transition-all duration-200 relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06B6D4]/40',
                             isActive
                               ? 'text-[#1E293B] bg-[#E0F2FE] border border-[#06B6D4]/20'
                               : 'text-[#64748B] hover:text-[#1E293B] hover:bg-[#F8FAFC]',

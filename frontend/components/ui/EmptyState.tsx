@@ -63,12 +63,12 @@ export function EmptyState({
       </div>
 
       {/* Title */}
-      <h3 className="text-base font-semibold text-[#0F172A] mb-1.5">
+      <h3 className="text-sm font-semibold text-[#1E293B] mb-2">
         {title}
       </h3>
 
       {/* Description */}
-      <p className="text-sm text-[#64748B] max-w-sm leading-relaxed">
+      <p className="text-xs text-[#64748B] max-w-sm leading-relaxed">
         {description}
       </p>
 

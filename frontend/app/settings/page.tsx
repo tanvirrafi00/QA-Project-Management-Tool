@@ -36,9 +36,9 @@ export default function SettingsPage() {
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as any)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 border ${isActive
-                          ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 border-cyan-400/20 text-white shadow-md shadow-cyan-500/25'
-                          : 'bg-transparent border-transparent text-text-muted hover:text-text-primary hover:bg-background-hover'
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors border ${isActive
+                          ? 'bg-[#06B6D4] border-[#06B6D4] text-white shadow-sm'
+                          : 'bg-transparent border-transparent text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9]'
                           }`}
                       >
                         <Icon className="w-4 h-4 flex-shrink-0" />
@@ -68,13 +68,13 @@ function ProfileSettings() {
   return (
     <div className="space-y-6">
       <Panel padding="default">
-        <div className="flex items-center gap-6 pb-6 border-b border-border-default">
-          <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center text-white text-2xl font-bold shadow-md shadow-cyan-500/25">
+        <div className="flex items-center gap-6 pb-6 border-b border-[#E2E8F0]">
+          <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-[#06B6D4] to-[#0EA5E9] flex items-center justify-center text-white text-2xl font-bold shadow-sm">
             JD
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-text-primary">John Doe</h3>
-            <p className="text-sm text-text-muted">john.doe@example.com</p>
+            <h3 className="text-lg font-semibold text-[#0F172A]">John Doe</h3>
+            <p className="text-sm text-[#64748B]">john.doe@example.com</p>
           </div>
         </div>
 
@@ -93,17 +93,17 @@ function ProfileSettings() {
           </div>
         </div>
 
-        <div className="pt-4 border-t border-[#1E293B]">
+        <div className="pt-4 border-t border-[#E2E8F0]">
           <Button className="w-full">Save Changes</Button>
         </div>
       </Panel>
 
       <Panel padding="default">
-        <h3 className="text-lg font-semibold text-[#F8FAFC] mb-4">Danger Zone</h3>
+        <h3 className="text-base font-semibold text-[#0F172A] mb-4">Danger Zone</h3>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-[#F8FAFC]">Delete Account</p>
-            <p className="text-xs text-[#94A3B8] mt-1">Permanently delete your account and all data</p>
+            <p className="text-sm font-medium text-[#1E293B]">Delete Account</p>
+            <p className="text-xs text-[#64748B] mt-1">Permanently delete your account and all data</p>
           </div>
           <Button variant="danger" leftIcon={<Trash className="w-4 h-4" />}>
             Delete Account
@@ -118,19 +118,19 @@ function NotificationSettings() {
   return (
     <Panel padding="default">
       <div className="space-y-6">
-        <h3 className="text-lg font-semibold text-[#F8FAFC] mb-6">Email Notifications</h3>
+        <h3 className="text-base font-semibold text-[#0F172A] mb-6">Email Notifications</h3>
 
         {[
           { id: 'test-complete', label: 'Test generation complete', desc: 'Get notified when test generation finishes' },
           { id: 'gap-found', label: 'Gaps detected', desc: 'Receive alerts when gaps are found in requirements' },
           { id: 'weekly-report', label: 'Weekly summary', desc: 'Weekly digest of your activity' },
         ].map((setting) => (
-          <div key={setting.id} className="flex items-center justify-between pb-5 border-b border-border-default last:border-0 last:pb-0">
+          <div key={setting.id} className="flex items-center justify-between pb-5 border-b border-[#E2E8F0] last:border-0 last:pb-0">
             <div>
-              <p className="text-sm font-medium text-text-primary">{setting.label}</p>
-              <p className="text-xs text-text-muted mt-1">{setting.desc}</p>
+              <p className="text-sm font-medium text-[#1E293B]">{setting.label}</p>
+              <p className="text-xs text-[#64748B] mt-1">{setting.desc}</p>
             </div>
-            <button className={`w-12 h-6 rounded-full transition-colors ${setting.id !== 'weekly-report' ? 'bg-primary' : 'bg-background-elevated border border-border-default'
+            <button className={`w-12 h-6 rounded-full transition-colors ${setting.id !== 'weekly-report' ? 'bg-[#06B6D4]' : 'bg-[#E2E8F0] border border-[#CBD5E1]'
               } relative`}>
               <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${setting.id !== 'weekly-report' ? 'translate-x-6' : ''
                 }`} />
@@ -146,8 +146,8 @@ function ApiSettings() {
   return (
     <Panel padding="default">
       <div className="space-y-6">
-        <h3 className="text-lg font-semibold text-[#F8FAFC] mb-2">API Configuration</h3>
-        <p className="text-sm text-[#94A3B8] mb-6">Configure your AI provider API keys</p>
+        <h3 className="text-base font-semibold text-[#0F172A] mb-2">API Configuration</h3>
+        <p className="text-sm text-[#64748B] mb-6">Configure your AI provider API keys</p>
 
         <div className="space-y-5">
           <div>
@@ -175,13 +175,13 @@ function ApiSettings() {
           </div>
         </div>
 
-        <div className="pt-4 border-t border-border-default">
+        <div className="pt-4 border-t border-[#E2E8F0]">
           <Button className="w-full">Save API Keys</Button>
         </div>
 
-        <div className="p-4 rounded-xl bg-background-elevated/40 border border-border-default">
-          <p className="text-xs text-text-muted">
-            <strong className="text-text-primary">Note:</strong> The system uses GLM as the primary provider and automatically falls back to Gemini on quota or rate limit errors.
+        <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+          <p className="text-xs text-[#64748B]">
+            <strong className="text-[#0F172A]">Note:</strong> The system uses GLM as the primary provider and automatically falls back to Gemini on quota or rate limit errors.
           </p>
         </div>
       </div>
@@ -195,8 +195,8 @@ function AppearanceSettings() {
   return (
     <Panel padding="default">
       <div className="space-y-6">
-        <h3 className="text-lg font-semibold text-[#F8FAFC] mb-2">Appearance</h3>
-        <p className="text-sm text-[#94A3B8] mb-6">Customize your visual experience</p>
+        <h3 className="text-base font-semibold text-[#0F172A] mb-2">Appearance</h3>
+        <p className="text-sm text-[#64748B] mb-6">Customize your visual experience</p>
 
         <div className="space-y-5">
           <div>
@@ -210,8 +210,8 @@ function AppearanceSettings() {
                 <button
                   key={theme.id}
                   className={`p-4 rounded-xl border text-left transition-all ${theme.id === 'dark'
-                    ? 'bg-gradient-to-br from-cyan-500 to-cyan-600 border-cyan-400/20 text-white shadow-md shadow-cyan-500/25'
-                    : 'bg-background-elevated/40 border-border-default hover:border-primary/30 text-text-muted'
+                    ? 'bg-gradient-to-br from-[#06B6D4] to-[#0EA5E9] border-[#06B6D4]/20 text-white shadow-sm'
+                    : 'bg-[#F8FAFC] border-[#E2E8F0] hover:border-[#06B6D4]/30 text-[#64748B]'
                     }`}
                 >
                   <p className="text-sm font-medium">{theme.label}</p>
@@ -232,7 +232,7 @@ function AppearanceSettings() {
                 ]}
                 value={fontSize}
                 onChange={setFontSize}
-                accentColor="#3B82F6"
+                accentColor="#06B6D4"
                 height={44}
               />
             </div>
@@ -241,8 +241,8 @@ function AppearanceSettings() {
           <div>
             <Label>Compact Mode</Label>
             <div className="flex items-center justify-between mt-3">
-              <p className="text-sm text-[#94A3B8]">Reduce spacing for more content density</p>
-              <button className="w-12 h-6 rounded-full bg-[#334155] relative">
+              <p className="text-sm text-[#64748B]">Reduce spacing for more content density</p>
+              <button className="w-12 h-6 rounded-full bg-[#E2E8F0] relative">
                 <span className="absolute top-1 left-1 w-4 h-4 rounded-full bg-white" />
               </button>
             </div>

@@ -131,7 +131,7 @@ export function Pagination({
     if (totalItems === 0) return null;
 
     return (
-        <div className="px-4 py-3 bg-[#F8FAFC] border-t border-[#E2E8F0] flex items-center justify-between gap-4 flex-wrap">
+        <nav aria-label="Pagination" className="px-4 py-3 bg-[#F8FAFC] border-t border-[#E2E8F0] flex items-center justify-between gap-6 flex-wrap">
             {/* Summary + page size */}
             <div className="flex items-center gap-3 text-sm text-[#64748B]">
                 <span>
@@ -160,7 +160,8 @@ export function Pagination({
                 <button
                     onClick={() => onPageChange(Math.max(1, page - 1))}
                     disabled={page === 1}
-                    className="inline-flex items-center gap-1 px-3 h-8 rounded-lg text-xs font-medium text-[#1E293B] border border-[#E2E8F0] bg-white hover:bg-[#F1F5F9] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    aria-label="Previous page"
+                    className="inline-flex items-center gap-1 px-3 h-8 rounded-lg text-xs font-medium text-[#1E293B] border border-[#E2E8F0] bg-white hover:bg-[#F1F5F9] transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06B6D4]/40"
                 >
                     <ChevronLeft className="w-3.5 h-3.5" /> Prev
                 </button>
@@ -169,7 +170,8 @@ export function Pagination({
                         <button
                             key={i}
                             onClick={() => onPageChange(p)}
-                            className={`min-w-[2rem] h-8 px-2 rounded-lg text-xs font-medium transition-colors ${p === page ? 'bg-[#06B6D4] text-white' : 'text-[#1E293B] border border-[#E2E8F0] bg-white hover:bg-[#F1F5F9]'}`}
+                            aria-current={p === page ? 'page' : undefined}
+                            className={`min-w-[2rem] h-8 px-2 rounded-lg text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06B6D4]/40 ${p === page ? 'bg-[#06B6D4] text-white' : 'text-[#1E293B] border border-[#E2E8F0] bg-white hover:bg-[#F1F5F9]'}`}
                         >
                             {p}
                         </button>
@@ -180,11 +182,12 @@ export function Pagination({
                 <button
                     onClick={() => onPageChange(Math.min(totalPages, page + 1))}
                     disabled={page === totalPages}
-                    className="inline-flex items-center gap-1 px-3 h-8 rounded-lg text-xs font-medium text-[#1E293B] border border-[#E2E8F0] bg-white hover:bg-[#F1F5F9] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    aria-label="Next page"
+                    className="inline-flex items-center gap-1 px-3 h-8 rounded-lg text-xs font-medium text-[#1E293B] border border-[#E2E8F0] bg-white hover:bg-[#F1F5F9] transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06B6D4]/40"
                 >
                     Next <ChevronRight className="w-3.5 h-3.5" />
                 </button>
             </div>
-        </div>
+        </nav>
     );
 }

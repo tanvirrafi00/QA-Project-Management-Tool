@@ -22,6 +22,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export interface SelectOption {
     value: string;
@@ -152,7 +153,7 @@ export function CustomSelect({
     }, [onChange]);
 
     return (
-        <div style={{ position: 'relative', width: '100%' }}>
+        <div className="relative w-full">
             {/* Trigger Button */}
             <button
                 ref={triggerRef}
@@ -160,39 +161,25 @@ export function CustomSelect({
                 onClick={() => { setQuery(''); setIsOpen(o => !o); }}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
+                aria-expanded={isOpen}
+                aria-haspopup="listbox"
+                className={cn(
+                    'w-full h-10 px-3 rounded-lg bg-white transition-all duration-200 flex items-center justify-between gap-2 outline-none cursor-pointer',
+                    'focus:ring-2 focus:ring-offset-2',
+                    selectedOption ? 'text-[#0F172A]' : 'text-[#94A3B8]'
+                )}
                 style={{
-                    width: '100%',
-                    height: `${height}px`,
-                    background: '#FFFFFF',
                     border: `2px solid ${isOpen || isFocused ? accentColor : '#E2E8F0'}`,
-                    borderRadius: '10px',
-                    padding: '0 12px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: selectedOption ? '#0F172A' : '#94A3B8',
-                    fontFamily: 'inherit',
-                    boxSizing: 'border-box',
-                    cursor: 'pointer',
-                    outline: 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '8px',
-                    transition: 'all 0.2s ease',
                     boxShadow: isOpen || isFocused ? `0 0 0 3px ${accentColor}1A` : 'none',
                 }}
             >
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span className="flex items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap">
                     {selectedOption?.icon}
                     {selectedOption?.label || placeholder}
                 </span>
                 <ChevronDown
+                    className="w-4 h-4 text-[#64748B] flex-shrink-0 transition-transform duration-200"
                     style={{
-                        width: '16px',
-                        height: '16px',
-                        color: '#64748B',
-                        flexShrink: 0,
-                        transition: 'transform 0.2s ease',
                         transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
                     }}
                 />
@@ -202,39 +189,25 @@ export function CustomSelect({
             {isOpen && mounted && createPortal(
                 <div
                     ref={panelRef}
+                    className="bg-white border border-[#E2E8F0] rounded-xl overflow-hidden animate-dropdownFadeIn"
                     style={{
-                        background: '#FFFFFF',
-                        border: '1px solid #E2E8F0',
-                        borderRadius: '12px',
                         boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08)',
-                        overflow: 'hidden',
-                        animation: 'dropdownFadeIn 0.15s ease-out',
                         ...panelStyle,
                     }}
                 >
                     {searchable && (
-                        <div style={{ padding: '8px', borderBottom: '1px solid #F1F5F9', position: 'sticky', top: 0, background: '#FFFFFF', zIndex: 1 }}>
+                        <div className="p-2 border-b border-[#F1F5F9] sticky top-0 bg-white z-1">
                             <input
                                 ref={searchRef}
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
                                 placeholder="Search…"
-                                style={{
-                                    width: '100%',
-                                    height: '32px',
-                                    padding: '0 10px',
-                                    borderRadius: '8px',
-                                    border: '1px solid #E2E8F0',
-                                    fontSize: '13px',
-                                    outline: 'none',
-                                    boxSizing: 'border-box',
-                                    fontFamily: 'inherit',
-                                }}
+                                className="w-full h-8 px-2.5 rounded-lg border border-[#E2E8F0] text-xs outline-none box-border font-sans"
                             />
                         </div>
                     )}
                     {visibleOptions.length === 0 ? (
-                        <div style={{ padding: '16px', textAlign: 'center', color: '#94A3B8', fontSize: '13px' }}>No matches</div>
+                        <div className="p-4 text-center text-[#94A3B8] text-xs">No matches</div>
                     ) : visibleOptions.map((option, index) => {
                         const isSelected = option.value === value;
                         return (
@@ -242,37 +215,21 @@ export function CustomSelect({
                                 key={option.value}
                                 type="button"
                                 onClick={() => handleSelect(option.value)}
-                                style={{
-                                    width: '100%',
-                                    padding: '10px 14px',
-                                    background: isSelected ? `${accentColor}0D` : 'transparent',
-                                    border: 'none',
-                                    borderBottom: index < options.length - 1 ? '1px solid #F1F5F9' : 'none',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    gap: '8px',
-                                    fontSize: '14px',
-                                    fontWeight: isSelected ? '600' : '500',
-                                    color: isSelected ? accentColor : '#334155',
-                                    fontFamily: 'inherit',
-                                    transition: 'background 0.1s ease',
-                                    textAlign: 'left',
-                                }}
-                                onMouseEnter={(e) => {
-                                    if (!isSelected) e.currentTarget.style.background = '#F9FAFB';
-                                }}
-                                onMouseLeave={(e) => {
-                                    if (!isSelected) e.currentTarget.style.background = 'transparent';
-                                }}
+                                className={cn(
+                                    'w-full px-3.5 py-2.5 text-left transition-colors duration-100 flex items-center justify-between gap-2',
+                                    'text-sm font-medium outline-none cursor-pointer',
+                                    isSelected
+                                        ? `bg-[${accentColor}0D] text-[${accentColor}] font-semibold`
+                                        : 'text-[#334155] hover:bg-[#F9FAFB]',
+                                    index < options.length - 1 ? 'border-b border-[#F1F5F9]' : ''
+                                )}
                             >
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span className="flex items-center gap-2 min-w-0">
                                     {option.icon}
-                                    {option.label}
+                                    <span className="truncate" title={option.label}>{option.label}</span>
                                 </span>
                                 {isSelected && (
-                                    <Check style={{ width: '16px', height: '16px', color: accentColor, flexShrink: 0 }} />
+                                    <Check className="w-4 h-4 flex-shrink-0" style={{ color: accentColor }} />
                                 )}
                             </button>
                         );

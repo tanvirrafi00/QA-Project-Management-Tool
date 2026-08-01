@@ -69,9 +69,9 @@ export function Alert({
                 <div className="flex-1 min-w-0 pt-0.5">
                     {title && <p className={cn('text-sm font-semibold leading-snug', cfg.title)}>{title}</p>}
                     {description && (
-                        <p className="text-xs text-[#64748B] mt-0.5 leading-relaxed break-words">{description}</p>
+                        <p className="text-xs text-[#64748B] mt-1 leading-relaxed break-words">{description}</p>
                     )}
-                    {children && <div className="text-sm text-[#475569] leading-relaxed mt-1">{children}</div>}
+                    {children && <div className="text-sm text-[#475569] leading-relaxed mt-2">{children}</div>}
                 </div>
                 {onDismiss && (
                     <button

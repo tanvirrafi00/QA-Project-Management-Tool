@@ -78,12 +78,12 @@ export function UserMenu() {
 
     const initials = user?.name
         ? user.name
-              .split(' ')
-              .map((p) => p[0])
-              .filter(Boolean)
-              .slice(0, 2)
-              .join('')
-              .toUpperCase()
+            .split(' ')
+            .map((p) => p[0])
+            .filter(Boolean)
+            .slice(0, 2)
+            .join('')
+            .toUpperCase()
         : null;
 
     return (
@@ -92,9 +92,10 @@ export function UserMenu() {
                 ref={btnRef}
                 type="button"
                 onClick={() => setOpen((v) => !v)}
-                className="flex items-center gap-2 h-10 pl-1 pr-2 rounded-xl hover:bg-[#F1F5F9] transition-colors flex-shrink-0"
+                className="flex items-center gap-2 h-10 pl-1 pr-2 rounded-xl hover:bg-[#F1F5F9] transition-colors flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06B6D4]/40"
                 aria-haspopup="menu"
                 aria-expanded={open}
+                aria-label={`User menu: ${user?.name ?? 'User'}`}
             >
                 <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
                     {initials || <LogOut className="w-4 h-4" />}

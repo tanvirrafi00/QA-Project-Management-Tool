@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { AppShell, PageContainer, SplitPane, Panel } from '@/components/layout';
 import { SectionHeader, Button, Label, Input, TextArea } from '@/components/core';
-import { Globe, CheckCircle, AlertTriangle, Shield, Zap, Copy, Check } from 'lucide-react';
+import { Globe, CheckCircle, AlertTriangle, Shield, Zap, Copy, Check, Loader2 } from 'lucide-react';
 import { ChevronDown, ChevronRight, Target } from 'lucide-react';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 export default function ApiTestsPage() {
   const [endpoint, setEndpoint] = useState('');
@@ -184,36 +185,14 @@ export default function ApiTestsPage() {
 /* ─── Loading State ─── */
 function ApiLoadingState() {
   return (
-    <div
-      className="flex items-center justify-center animate-fade-in"
-      style={{
-        background: 'var(--background-primary)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-xl)',
-        minHeight: '550px',
-        padding: 'var(--spacing-8)',
-      }}
-    >
-      <div className="flex flex-col items-center justify-center text-center">
-        <div style={{ position: 'relative', marginBottom: 'var(--spacing-8)' }}>
-          <div
-            style={{
-              width: '64px',
-              height: '64px',
-              borderRadius: '50%',
-              border: '4px solid var(--border-subtle)',
-              borderTop: '4px solid var(--color-purple)',
-              animation: 'spin 1s linear infinite',
-            }}
-          />
-        </div>
-        <p className="text-body-lg font-semibold mb-2" style={{ color: 'var(--text-primary)', letterSpacing: '-0.025em' }}>
-          Generating API test cases...
-        </p>
-        <p className="text-body-md" style={{ color: 'var(--text-secondary)' }}>
-          Analyzing endpoint specification
-        </p>
-      </div>
+    <div className="bg-white border border-[#E2E8F0] rounded-2xl min-h-[550px] flex flex-col items-center justify-center text-center p-8">
+      <Loader2 className="w-10 h-10 text-[#06B6D4] animate-spin mb-4" />
+      <p className="text-base font-semibold text-[#0F172A] mb-1.5">
+        Generating API test cases...
+      </p>
+      <p className="text-sm text-[#64748B]">
+        Analyzing endpoint specification
+      </p>
     </div>
   );
 }
@@ -221,38 +200,12 @@ function ApiLoadingState() {
 /* ─── Empty State ─── */
 function ApiEmptyState() {
   return (
-    <div
-      className="flex items-center justify-center animate-fade-in"
-      style={{
-        background: 'var(--background-primary)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-xl)',
-        minHeight: '550px',
-        padding: 'var(--spacing-8)',
-      }}
-    >
-      <div className="flex flex-col items-center text-center" style={{ maxWidth: '400px', gap: 'var(--spacing-5)' }}>
-        <div
-          className="flex items-center justify-center"
-          style={{
-            width: '80px',
-            height: '80px',
-            borderRadius: 'var(--radius-lg)',
-            background: 'linear-gradient(135deg, #EDE9FE 0%, #DDD6FE 100%)',
-            marginBottom: 'var(--spacing-2)',
-          }}
-        >
-          <Globe style={{ width: '40px', height: '40px', color: 'var(--color-purple)' }} />
-        </div>
-        <div>
-          <h3 className="text-display-lg font-semibold mb-2" style={{ color: 'var(--text-primary)', letterSpacing: '-0.025em' }}>
-            No API Tests Yet
-          </h3>
-          <p className="text-body-md" style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-            Enter your API endpoint details to generate comprehensive test cases
-          </p>
-        </div>
-      </div>
+    <div className="bg-white border border-[#E2E8F0] rounded-2xl min-h-[550px]">
+      <EmptyState
+        icon={Globe}
+        title="No API Tests Yet"
+        description="Enter your API endpoint details to generate comprehensive test cases"
+      />
     </div>
   );
 }

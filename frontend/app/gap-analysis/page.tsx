@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { AppShell, PageContainer, SplitPane, Panel } from '@/components/layout';
 import { SectionHeader, Button, Label, Input, TextArea } from '@/components/core';
-import { SearchCheck, AlertTriangle, CheckCircle, FileText, Shield, HelpCircle, Copy, Check } from 'lucide-react';
+import { SearchCheck, AlertTriangle, CheckCircle, FileText, Shield, HelpCircle, Copy, Check, Loader2 } from 'lucide-react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 export default function GapAnalysisPage() {
   const [requirement, setRequirement] = useState('');
@@ -141,36 +142,14 @@ export default function GapAnalysisPage() {
 /* ─── Loading State ─── */
 function GapLoadingState() {
   return (
-    <div
-      className="flex items-center justify-center animate-fade-in"
-      style={{
-        background: 'var(--background-primary)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-xl)',
-        minHeight: '550px',
-        padding: 'var(--spacing-8)',
-      }}
-    >
-      <div className="flex flex-col items-center justify-center text-center">
-        <div style={{ position: 'relative', marginBottom: 'var(--spacing-8)' }}>
-          <div
-            style={{
-              width: '64px',
-              height: '64px',
-              borderRadius: '50%',
-              border: '4px solid var(--border-subtle)',
-              borderTop: '4px solid var(--color-warning)',
-              animation: 'spin 1s linear infinite',
-            }}
-          />
-        </div>
-        <p className="text-body-lg font-semibold mb-2" style={{ color: 'var(--text-primary)', letterSpacing: '-0.025em' }}>
-          Analyzing requirements...
-        </p>
-        <p className="text-body-md" style={{ color: 'var(--text-secondary)' }}>
-          Identifying gaps, missing validations, and risks
-        </p>
-      </div>
+    <div className="bg-white border border-[#E2E8F0] rounded-2xl min-h-[550px] flex flex-col items-center justify-center text-center p-8">
+      <Loader2 className="w-10 h-10 text-[#06B6D4] animate-spin mb-4" />
+      <p className="text-base font-semibold text-[#0F172A] mb-1.5">
+        Analyzing requirements...
+      </p>
+      <p className="text-sm text-[#64748B]">
+        Identifying gaps, missing validations, and risks
+      </p>
     </div>
   );
 }
@@ -178,38 +157,12 @@ function GapLoadingState() {
 /* ─── Empty State ─── */
 function GapEmptyState() {
   return (
-    <div
-      className="flex items-center justify-center animate-fade-in"
-      style={{
-        background: 'var(--background-primary)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-xl)',
-        minHeight: '550px',
-        padding: 'var(--spacing-8)',
-      }}
-    >
-      <div className="flex flex-col items-center text-center" style={{ maxWidth: '400px', gap: 'var(--spacing-5)' }}>
-        <div
-          className="flex items-center justify-center"
-          style={{
-            width: '80px',
-            height: '80px',
-            borderRadius: 'var(--radius-lg)',
-            background: 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)',
-            marginBottom: 'var(--spacing-2)',
-          }}
-        >
-          <SearchCheck style={{ width: '40px', height: '40px', color: 'var(--color-warning)' }} />
-        </div>
-        <div>
-          <h3 className="text-display-lg font-semibold mb-2" style={{ color: 'var(--text-primary)', letterSpacing: '-0.025em' }}>
-            No Analysis Yet
-          </h3>
-          <p className="text-body-md" style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-            Paste your requirement and let AI identify gaps, risks, and missing validations
-          </p>
-        </div>
-      </div>
+    <div className="bg-white border border-[#E2E8F0] rounded-2xl min-h-[550px]">
+      <EmptyState
+        icon={SearchCheck}
+        title="No Analysis Yet"
+        description="Paste your requirement and let AI identify gaps, risks, and missing validations"
+      />
     </div>
   );
 }

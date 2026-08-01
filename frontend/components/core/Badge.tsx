@@ -13,12 +13,12 @@ const sizeStyles = {
 };
 
 const variantStyles = {
-  default: 'bg-slate-500/10 text-slate-400 border border-slate-500/20',
-  primary: 'bg-cyan-500/10 text-cyan-600 border border-cyan-500/20',
-  success: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
-  warning: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
-  error: 'bg-red-500/10 text-red-400 border border-red-500/20',
-  info: 'bg-purple-500/10 text-purple-400 border border-purple-500/20',
+  default: 'bg-[#E2E8F0]/20 text-[#64748B] border border-[#E2E8F0]',
+  primary: 'bg-[#06B6D4]/10 text-[#06B6D4] border border-[#06B6D4]/30',
+  success: 'bg-[#22C55E]/10 text-[#16A34A] border border-[#22C55E]/30',
+  warning: 'bg-[#F59E0B]/10 text-[#D97706] border border-[#F59E0B]/30',
+  error: 'bg-[#EF4444]/10 text-[#DC2626] border border-[#EF4444]/30',
+  info: 'bg-[#3B82F6]/10 text-[#2563EB] border border-[#3B82F6]/30',
 };
 
 export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
@@ -46,10 +46,10 @@ interface PriorityBadgeProps {
 }
 
 const priorityStyles = {
-  critical: 'bg-red-500/10 text-red-400 border border-red-500/20',
-  high: 'bg-orange-500/10 text-orange-400 border border-orange-500/20',
-  medium: 'bg-slate-500/10 text-slate-400 border border-slate-500/20',
-  low: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+  critical: 'bg-[#EF4444]/10 text-[#DC2626] border border-[#EF4444]/30',
+  high: 'bg-[#F59E0B]/10 text-[#D97706] border border-[#F59E0B]/30',
+  medium: 'bg-[#64748B]/10 text-[#475569] border border-[#64748B]/30',
+  low: 'bg-[#22C55E]/10 text-[#16A34A] border border-[#22C55E]/30',
 };
 
 export const PriorityBadge = ({ priority }: PriorityBadgeProps) => {

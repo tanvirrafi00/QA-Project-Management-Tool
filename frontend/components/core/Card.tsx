@@ -40,7 +40,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
           // Padding
           paddingStyles[padding],
           // Hover effect
-          hoverable && 'glass-panel-hover',
+          hoverable && 'hover:shadow-lg hover:border-[#06B6D4] hover:scale-[1.01]',
           className
         )}
         {...props}
@@ -100,7 +100,7 @@ export const CardContent = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElem
   ({ className, children, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn('', className)}
+      className={cn('pt-2', className)}
       {...props}
     >
       {children}

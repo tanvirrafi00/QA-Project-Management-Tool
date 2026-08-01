@@ -149,7 +149,7 @@ export function Modal({
                 aria-modal="true"
                 tabIndex={-1}
                 className={cn(
-                    'relative bg-white rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-y-auto focus:outline-none',
+                    'relative bg-white rounded-2xl shadow-2xl w-full max-h-[90vh] flex flex-col focus:outline-none',
                     SIZES[size],
                 )}
             >
@@ -158,7 +158,7 @@ export function Modal({
 
                 {/* Standard header */}
                 {showStandardHeader && (
-                    <div className="flex items-center justify-between px-6 py-5 border-b border-[#E2E8F0]">
+                    <div className="flex items-center justify-between px-6 py-5 border-b border-[#E2E8F0] flex-shrink-0">
                         <div className="flex items-center gap-3 min-w-0">
                             {Icon && (
                                 <div
@@ -194,11 +194,11 @@ export function Modal({
                 )}
 
                 {/* Body */}
-                <div className={cn('px-6 py-5', bodyClassName)}>{children}</div>
+                <div className={cn('px-6 py-6 overflow-y-auto flex-1', bodyClassName)}>{children}</div>
 
                 {/* Footer */}
                 {footer && (
-                    <div className="flex items-center justify-end gap-3 px-6 py-4 bg-[#F8FAFC] border-t border-[#E2E8F0]">
+                    <div className="flex items-center justify-end gap-3 px-6 py-4 bg-[#F8FAFC] border-t border-[#E2E8F0] flex-shrink-0">
                         {footer}
                     </div>
                 )}

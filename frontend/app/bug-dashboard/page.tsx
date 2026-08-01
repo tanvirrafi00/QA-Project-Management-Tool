@@ -269,23 +269,27 @@ export default function BugDashboardPage() {
                             </div>
 
                             {activeTab === 'dashboard' ? (
-                                <DashboardView data={data} onExport={handleExportExcel} onViewBug={handleViewBug} />
+                                <div className="w-full">
+                                    <DashboardView data={data} onExport={handleExportExcel} onViewBug={handleViewBug} />
+                                </div>
                             ) : (
-                                <BugListView
-                                    data={data}
-                                    onExport={handleExportExcel}
-                                    onViewBug={handleViewBug}
-                                    loadingBug={false}
-                                    onInlineUpdate={handleInlineUpdate}
-                                    onAddBug={handleAddBug}
-                                    addBugSaving={addBugSaving}
-                                    members={members}
-                                    role={role}
-                                    currentUserId={user?.id}
-                                    savingKey={saving}
-                                    project={project}
-                                    onBugAdded={handleBugSaved}
-                                />
+                                <div className="w-full">
+                                    <BugListView
+                                        data={data}
+                                        onExport={handleExportExcel}
+                                        onViewBug={handleViewBug}
+                                        loadingBug={false}
+                                        onInlineUpdate={handleInlineUpdate}
+                                        onAddBug={handleAddBug}
+                                        addBugSaving={addBugSaving}
+                                        members={members}
+                                        role={role}
+                                        currentUserId={user?.id}
+                                        savingKey={saving}
+                                        project={project}
+                                        onBugAdded={handleBugSaved}
+                                    />
+                                </div>
                             )}
                         </>
                     )}
@@ -303,7 +307,7 @@ function DashboardView({ data, onExport, onViewBug }: { data: BugDashboardData; 
     return (
         <>
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 min-w-0">
                 <KPICard icon={<Bug />} label="Total Bugs" value={formatStat(data.kpis.totalBugs)} color="#3B82F6" bgColor="#EFF6FF" />
                 <KPICard icon={<Monitor />} label="Frontend" value={formatStat(data.kpis.frontendBugs)} color="#3B82F6" bgColor="#EFF6FF" />
                 <KPICard icon={<Server />} label="Backend" value={formatStat(data.kpis.backendBugs)} color="#8B5CF6" bgColor="#F5F3FF" />
@@ -433,19 +437,19 @@ function DashboardView({ data, onExport, onViewBug }: { data: BugDashboardData; 
             </div>
 
             {/* Critical Bug Monitors */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0">
                 <CriticalBugTable title="Critical Frontend Bugs" icon={<Monitor className="w-5 h-5 text-[#3B82F6]" />} bugs={data.criticalFrontendBugs} accentColor="#3B82F6" onViewBug={onViewBug} />
                 <CriticalBugTable title="Critical Backend Bugs" icon={<Server className="w-5 h-5 text-[#8B5CF6]" />} bugs={data.criticalBackendBugs} accentColor="#8B5CF6" onViewBug={onViewBug} />
             </div>
 
             {/* Team Analytics */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0">
                 <TeamAnalytics title="Frontend Team" icon={<Monitor className="w-5 h-5 text-[#3B82F6]" />} team={data.frontendTeam} accentColor="#3B82F6" />
                 <TeamAnalytics title="Backend Team" icon={<Server className="w-5 h-5 text-[#8B5CF6]" />} team={data.backendTeam} accentColor="#8B5CF6" />
             </div>
 
             {/* AI Insights */}
-            <div className="bg-gradient-to-br from-[#0F172A] to-[#1E293B] rounded-2xl p-6 text-white">
+            <div className="bg-gradient-to-br from-[#0F172A] to-[#1E293B] rounded-2xl p-6 text-white min-w-0">
                 <div className="flex items-center gap-2 mb-5">
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#06B6D4] to-[#3B82F6] flex items-center justify-center">
                         <Sparkles className="w-4 h-4 text-white" />
@@ -489,7 +493,7 @@ function DashboardView({ data, onExport, onViewBug }: { data: BugDashboardData; 
             </div>
 
             {/* Export Buttons */}
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap min-w-0">
                 <span className="text-sm text-[#64748B] font-medium">Export Reports:</span>
                 <Button variant="secondary" size="sm" onClick={() => onExport('Frontend')} leftIcon={<Download className="w-4 h-4" />}>Frontend Bugs</Button>
                 <Button variant="secondary" size="sm" onClick={() => onExport('Backend')} leftIcon={<Download className="w-4 h-4" />}>Backend Bugs</Button>
@@ -630,7 +634,7 @@ function BugListView({
     return (
         <>
             {/* Quick Switch Tabs */}
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap min-w-0">
                 {layerTabs.map(tab => (
                     <button
                         key={tab.value}
@@ -650,7 +654,7 @@ function BugListView({
             </div>
 
             {/* Filters Bar */}
-            <div className="bg-white rounded-2xl border border-[#E2E8F0] p-4 flex items-center gap-3 flex-wrap">
+            <div className="bg-white rounded-2xl border border-[#E2E8F0] p-4 flex items-center gap-3 flex-wrap min-w-0">
                 <div className="relative flex-1 min-w-[200px]">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
                     <input
@@ -687,9 +691,9 @@ function BugListView({
             </div>
 
             {/* Bug Table */}
-            <div className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full">
+            <div className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden min-w-0">
+                <div className="overflow-x-auto min-w-0">
+                    <table className="w-full min-w-0">
                         <thead>
                             <tr className="bg-[#F8FAFC] border-b border-[#E2E8F0]">
                                 <th onClick={() => handleSort('id')} className="text-left px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider cursor-pointer hover:text-[#0F172A] hover:bg-[#F1F5F9] transition-colors select-none whitespace-nowrap">
@@ -736,7 +740,7 @@ function BugListView({
                                 return (
                                     <tr key={bug.id} className="border-b border-[#F1F5F9] hover:bg-[#F8FAFC] transition-colors cursor-pointer" onClick={() => onViewBug(bug.id)}>
                                         <td className="px-4 py-2.5 text-sm font-mono font-medium text-[#06B6D4] whitespace-nowrap">{bug.id}</td>
-                                        <td className="px-4 py-2.5 text-sm text-[#1E293B] max-w-xs truncate">{bug.title}</td>
+                                        <td className="px-4 py-2.5 text-sm text-[#1E293B] max-w-[250px] truncate" title={bug.title}>{bug.title}</td>
                                         <td className="px-4 py-2.5 text-sm text-[#64748B] whitespace-nowrap">{bug.module}</td>
                                         <td className="px-4 py-2.5"><LayerBadge layer={bug.layer} /></td>
                                         <td className="px-4 py-2.5">
@@ -889,7 +893,7 @@ function CriticalBugTable({ title, icon, bugs, accentColor, onViewBug }: { title
                         ) : bugs.map(bug => (
                             <tr key={bug.id} onClick={() => onViewBug?.(bug.id)} className={`border-b border-[#F1F5F9] hover:bg-[#F8FAFC] transition-colors ${onViewBug ? 'cursor-pointer' : ''}`}>
                                 <td className="px-4 py-2.5 text-sm font-mono font-medium text-[#06B6D4]">{bug.id}</td>
-                                <td className="px-4 py-2.5 text-sm text-[#1E293B] max-w-xs truncate">{bug.title}</td>
+                                <td className="px-4 py-2.5 text-sm text-[#1E293B] max-w-[200px] truncate" title={bug.title}>{bug.title}</td>
                                 <td className="px-4 py-2.5"><StatusBadge status={bug.status} /></td>
                                 <td className="px-4 py-2.5 text-sm text-right">
                                     <span className={`font-semibold ${bug.age > 5 ? 'text-[#EF4444]' : 'text-[#64748B]'}`}>{bug.age}d</span>
@@ -905,27 +909,27 @@ function CriticalBugTable({ title, icon, bugs, accentColor, onViewBug }: { title
 
 function TeamAnalytics({ title, icon, team, accentColor }: { title: string; icon: React.ReactNode; team: { name: string; assigned: number; open: number; resolved: number }[]; accentColor: string }) {
     return (
-        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6">
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6 min-w-0">
             <div className="flex items-center gap-2 mb-4">
                 <span style={{ color: accentColor }}>{icon}</span>
                 <h3 className="text-base font-semibold text-[#1E293B]">{title}</h3>
             </div>
             <div className="space-y-3">
                 {team.map(member => (
-                    <div key={member.name} className="flex items-center gap-3">
+                    <div key={member.name} className="flex items-center gap-3 min-w-0">
                         <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0" style={{ background: `${accentColor}20`, color: accentColor }}>
                             {member.name.replace('Dev ', 'D')}
                         </div>
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
-                                <span className="text-sm font-medium text-[#1E293B]">{member.name}</span>
-                                <div className="flex items-center gap-3 text-xs">
+                                <span className="text-sm font-medium text-[#1E293B] truncate">{member.name}</span>
+                                <div className="flex items-center gap-3 text-xs flex-shrink-0 ml-2">
                                     <span className="text-[#64748B]">{member.assigned} assigned</span>
                                     <span className="text-[#EF4444]">{member.open} open</span>
                                     <span className="text-[#22C55E]">{member.resolved} resolved</span>
                                 </div>
                             </div>
-                            <div className="h-2 bg-[#F1F5F9] rounded-full overflow-hidden flex">
+                            <div className="h-2 bg-[#F1F5F9] rounded-full overflow-hidden flex min-w-[100px]">
                                 <div className="h-full" style={{ width: `${(member.open / member.assigned) * 100}%`, background: '#EF4444' }} />
                                 <div className="h-full" style={{ width: `${(member.resolved / member.assigned) * 100}%`, background: '#22C55E' }} />
                             </div>

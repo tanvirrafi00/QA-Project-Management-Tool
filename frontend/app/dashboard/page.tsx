@@ -69,9 +69,11 @@ export default function DashboardPage() {
             <PageContainer>
                 <div className="space-y-6">
                     {/* ========== HEADER ========== */}
-                    <div>
-                        <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight mb-1.5">Welcome back</h1>
-                        <p className="text-sm text-[#64748B]">AI QA Copilot dashboard</p>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight mb-1.5">Welcome back</h1>
+                            <p className="text-sm text-[#64748B]">AI QA Copilot dashboard</p>
+                        </div>
                     </div>
 
                     {/* ========== PENDING APPROVALS (admin only) ========== */}

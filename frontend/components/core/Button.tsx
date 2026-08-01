@@ -43,6 +43,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className={cn(
           // Base styles
           'inline-flex items-center justify-center rounded-xl font-semibold transition-all duration-200 flex-shrink-0',
+          // Focus-visible ring for keyboard accessibility
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06B6D4] focus-visible:ring-offset-2',
           // Disabled states
           'disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0',
           // Size variants

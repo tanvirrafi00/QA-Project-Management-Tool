@@ -53,7 +53,7 @@ export function ChartCard({
         <div className={cn('bg-white rounded-2xl border border-[#E2E8F0] p-6', className)}>
             <div className="flex items-center gap-2 mb-4">
                 <span className="text-[#64748B]">{icon}</span>
-                <h3 className="text-base font-semibold text-[#1E293B]">{title}</h3>
+                <h3 className="text-sm font-semibold text-[#1E293B]">{title}</h3>
             </div>
             {/*
               Body: when data exists, render children directly (recharts ResponsiveContainer
